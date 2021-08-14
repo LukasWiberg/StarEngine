@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 project(StarEngine)
 
-set(CMAKE_CXX_STANDARD 23)
+add_subdirectory(glfw)
+add_subdirectory(glm)
+add_subdirectory(StarEngine)
 
-add_executable(StarEngine main.cpp)
+target_link_directories(StarEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/glfw/include")
+target_link_directories(StarEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/glm/glm")
