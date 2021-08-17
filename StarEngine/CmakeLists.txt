@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 23)
 find_package(Vulkan REQUIRED)
 include_directories(Libraries)
 
-add_executable(StarEngine main.cpp Engine/StarEngine.cpp Engine/StarEngine.hpp Engine/Graphics/Camera.cpp Engine/Graphics/Camera.hpp Engine/Input/Keyboard.cpp Engine/Input/Keyboard.hpp Engine/Input/Mouse.cpp Engine/Input/Mouse.hpp Engine/Constants.hpp Engine/Vulkan/StarVulkan.cpp Engine/Vulkan/StarVulkan.hpp)
+add_executable(StarEngine main.cpp Engine/StarEngine.cpp Engine/StarEngine.hpp Engine/Graphics/Camera.cpp Engine/Graphics/Camera.hpp Engine/Input/Keyboard.cpp Engine/Input/Keyboard.hpp Engine/Input/Mouse.cpp Engine/Input/Mouse.hpp Engine/Constants.hpp Engine/Vulkan/StarVulkan.cpp Engine/Vulkan/StarVulkan.hpp Engine/Types/Vertex.cpp Engine/Types/Vertex.hpp Engine/Types/UniformBuffer.cpp Engine/Types/UniformBuffer.hpp)
 
 target_link_libraries(StarEngine Vulkan::Vulkan glm glfw)
 target_link_directories(StarEngine PUBLIC Libraries)

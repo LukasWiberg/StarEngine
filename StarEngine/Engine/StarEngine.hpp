@@ -8,23 +8,28 @@
 #define GLFW_INCLUDE_VULKAN
 #include <chrono>
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan.hpp>
 #include "Graphics/Camera.hpp"
 #include "Input/Keyboard.hpp"
 #include "Input/Mouse.hpp"
+#include "Vulkan/StarVulkan.hpp"
 
 class StarEngine {
 private:
     static StarEngine *instance;
     StarEngine();
 
-    GLFWwindow *window;
 
+    StarVulkan *vulkan;
     Keyboard *keyboard;
     Mouse *mouse;
 
+
+    //Runtime
     void EngineLoop();
 public:
     static StarEngine *GetInstance();
+    void StartEngine();
     Camera *camera;
 };
 

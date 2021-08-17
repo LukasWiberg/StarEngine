@@ -17,19 +17,23 @@ StarEngine *StarEngine::GetInstance() {
 StarEngine::StarEngine() {
     std::cout << "ayo" << std::endl;
 
+    vulkan = new StarVulkan();
+
     camera = new Camera();
     //Not yet used
     keyboard = new Keyboard(camera);
     mouse = new Mouse(camera);
 
-    glfwSetKeyCallback(window, Keyboard::KeyInput);
-    glfwSetCursorPosCallback(window, Mouse::MouseInput);
+    glfwSetKeyCallback(vulkan->window, Keyboard::KeyInput);
+    glfwSetCursorPosCallback(vulkan->window, Mouse::MouseInput);
+}
 
+void StarEngine::StartEngine() {
     EngineLoop();
 }
 
 void StarEngine::EngineLoop() {
-    while(!glfwWindowShouldClose(window)) {
+    while(!glfwWindowShouldClose(vulkan->window)) {
         glfwPollEvents();
         camera->UpdateCamera();
         //Draw();
