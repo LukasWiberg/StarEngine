@@ -14,7 +14,6 @@ private:
     glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  0.0f);
     glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 cameraSpeed{};
-    glm::mat4 view{};
 
 public:
     glm::vec3 deltaForward = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -25,6 +24,8 @@ public:
     explicit Camera(glm::vec3 cameraSpeed = glm::vec3(0.001f, 0.001f, 0.001f));
     void ReCalculateCameraFront();
     void UpdateCamera();
+
+    glm::mat4 view{};
 };
 
 

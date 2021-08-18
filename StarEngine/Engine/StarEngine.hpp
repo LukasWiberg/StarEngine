@@ -19,17 +19,20 @@ private:
     static StarEngine *instance;
     StarEngine();
 
-
     StarVulkan *vulkan;
     Keyboard *keyboard;
     Mouse *mouse;
-
+    uint32_t currentFrame = 0;
+    bool framebufferResized = false;
 
     //Runtime
     void EngineLoop();
+    void DrawFrame();
+    void UpdateUniformBuffer(uint32_t currentImage);
 public:
     static StarEngine *GetInstance();
     void StartEngine();
+
     Camera *camera;
 };
 

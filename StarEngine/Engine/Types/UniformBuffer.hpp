@@ -5,7 +5,7 @@
 #ifndef STARENGINE_UNIFORMBUFFER_HPP
 #define STARENGINE_UNIFORMBUFFER_HPP
 
-
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 
 struct UniformBufferObject {
