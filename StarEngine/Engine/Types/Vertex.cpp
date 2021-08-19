@@ -36,3 +36,12 @@ std::array<VkVertexInputAttributeDescription, 3> Vertex::GetAttributeDescription
 bool Vertex::operator==(const Vertex& other) const {
     return pos == other.pos && color == other.color && texCoord == other.texCoord;
 }
+
+Vertex::Vertex(const glm::vec3 &pos, const glm::vec3 &color, const glm::vec2 &texCoord) : pos(pos), color(color),
+                                                                                          texCoord(texCoord) {
+    this->pos = pos;
+    this->color = color;
+    this->texCoord = texCoord;
+}
+
+Vertex::Vertex() {}

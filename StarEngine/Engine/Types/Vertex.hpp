@@ -14,6 +14,10 @@ struct Vertex {
     glm::vec3 color;
     glm::vec2 texCoord;
 
+    Vertex(const glm::vec3 &pos, const glm::vec3 &color, const glm::vec2 &texCoord);
+
+    Vertex();
+
     static VkVertexInputBindingDescription GetBindingDescription();
 
     static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions();
