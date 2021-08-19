@@ -4,7 +4,7 @@
 StarEngine *StarEngine::instance = nullptr;
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
-    StarEngine::GetInstance();
+    StarEngine *engine = StarEngine::GetInstance();
+    engine->StartEngine();
     return 0;
 }

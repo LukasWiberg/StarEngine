@@ -7,5 +7,6 @@
 
 static const uint32_t WINDOW_WIDTH = 1920;
 static const uint32_t WINDOW_HEIGHT = 1080;
+static const uint32_t MAX_FRAMES_IN_FLIGHT = 3;
 
 #endif //STARENGINE_CONSTANTS_HPP

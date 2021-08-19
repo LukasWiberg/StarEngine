@@ -4,11 +4,13 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 #include "Camera.hpp"
 
-Camera::Camera(glm::vec3 cameraSpeed) {
+
+Camera::Camera(float cameraSpeed) {
     this->cameraSpeed = cameraSpeed;
-    UpdateCamera();
+    UpdateCamera(0);
 }
 
 void Camera::ReCalculateCameraFront() {
@@ -18,13 +20,18 @@ void Camera::ReCalculateCameraFront() {
     cameraFront = glm::normalize(cameraFront);
 };
 
-void Camera::UpdateCamera() {
+void Camera::UpdateCamera(double delta) {
     ReCalculateCameraFront();
-
-    glm::vec3 forwardMovement = cameraSpeed*cameraFront*deltaForward;
+    glm::vec3 forwardMovement = ((float)(delta*cameraSpeed))*cameraFront*(deltaForward+deltaBack);
+    if(boost) {
+        forwardMovement *= boostMultiplier;
+    }
     cameraPos += forwardMovement;
 
-    glm::vec3 sideMovement = glm::normalize(glm::cross(cameraFront, cameraUp))*cameraSpeed*deltaSide;
+    glm::vec3 sideMovement = glm::normalize(glm::cross(cameraFront, cameraUp))*((float)(delta*cameraSpeed))*(deltaLeft+deltaRight);
+    if(boost) {
+        sideMovement *= boostMultiplier;
+    }
     cameraPos += sideMovement;
 
     view = glm::lookAt(cameraPos, cameraPos+cameraFront, cameraUp);
