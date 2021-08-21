@@ -6,8 +6,6 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 #include "StarEngine.hpp"
-#include "Input/Keyboard.hpp"
-#include "Input/Mouse.hpp"
 #include "Constants.hpp"
 #include "General/ScopedClock.hpp"
 
@@ -19,6 +17,7 @@ StarEngine *StarEngine::GetInstance() {
 };
 
 StarEngine::StarEngine() {
+    srand((unsigned)time(nullptr));
     vulkan = new StarVulkan();
 
     camera = new Camera(1.0f);
@@ -37,9 +36,11 @@ void StarEngine::StartEngine() {
 void StarEngine::EngineLoop() {
     ScopedClock c = ScopedClock();
     while(!glfwWindowShouldClose(vulkan->window)) {
+        ScopedClock d = ScopedClock("FrameTime: ", true);
         glfwPollEvents();
         camera->UpdateCamera(c.GetElapsedSeconds());
         c.Reset();
+//        UpdateVertexBuffer();
         DrawFrame();
     }
     vulkan->Cleanup();
@@ -133,4 +134,17 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
     vkMapMemory(vulkan->device, vulkan->uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
     vkUnmapMemory(vulkan->device, vulkan->uniformBuffersMemory[currentImage]);
+}
+
+void StarEngine::UpdateVertexBuffer() {
+    for(Vertex &vert : vulkan->vertices) {
+        vert.pos = vert.pos + glm::vec3((((float)rand()/RAND_MAX)-0.5f)*0.01f, (((float)rand()/RAND_MAX)-0.5f)*0.01f, (((float)rand()/RAND_MAX)-0.5f)*0.01f);
+    }
+
+    vkDeviceWaitIdle(vulkan->device);
+
+    void* data;
+    vkMapMemory(vulkan->device, vulkan->vertexBufferMemory, 0, sizeof(vulkan->vertices[0])*vulkan->vertices.size(), 0, &data);
+    memcpy(data, vulkan->vertices.data(), sizeof(vulkan->vertices[0])*vulkan->vertices.size());
+    vkUnmapMemory(vulkan->device, vulkan->vertexBufferMemory);
 }

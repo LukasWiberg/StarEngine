@@ -17,6 +17,8 @@
 #include "../General/FileHelper.hpp"
 #include "../General/ModelHelper.hpp"
 #include "../General/ScopedClock.hpp"
+#include "../StarEngine.hpp"
+#include "../Shaders/ShaderObject.hpp"
 
 StarVulkan::StarVulkan() {
     InitGLFW();
@@ -54,13 +56,18 @@ void StarVulkan::InitGLFW() {
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Vulkan", nullptr, nullptr);
     glfwSetWindowUserPointer(window, this);
     //Disabled for now, static function...
-    //glfwSetFramebufferSizeCallback(window, FramebufferResizeCallback);
+    glfwSetFramebufferSizeCallback(window, StarVulkan::FramebufferResizeCallback);
+}
+
+void StarVulkan::FramebufferResizeCallback(GLFWwindow* glfwWindow, int width, int height) {
+    StarEngine *engine = StarEngine::GetInstance();
+    engine->framebufferResized = true;
 }
 
 void StarVulkan::CreateSurface() {
     if(glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create window surface!");
-    };
+    }
 }
 
 void StarVulkan::CreateInstance() {
@@ -139,7 +146,6 @@ std::vector<const char*> StarVulkan::GetRequiredExtensions() {
 }
 
 //region PhysicalDevice
-
 VkPhysicalDevice StarVulkan::PickPhysicalDevice() {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -167,62 +173,62 @@ VkPhysicalDevice StarVulkan::PickPhysicalDevice() {
 }
 
 
-bool StarVulkan::IsDeviceSuitable(VkPhysicalDevice device) {
-    QueueFamilyIndices indices = FindQueueFamilies(device);
+bool StarVulkan::IsDeviceSuitable(VkPhysicalDevice physDevice) {
+    QueueFamilyIndices qfIndices = FindQueueFamilies(physDevice);
 
-    bool extensionsSupported = CheckDeviceExtensionSupport(device);
+    bool extensionsSupported = CheckDeviceExtensionSupport(physDevice);
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-        SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(device);
+        SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physDevice);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
     VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+    vkGetPhysicalDeviceFeatures(physDevice, &supportedFeatures);
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate  && supportedFeatures.samplerAnisotropy;
+    return qfIndices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
 
-StarVulkan::QueueFamilyIndices StarVulkan::FindQueueFamilies(VkPhysicalDevice device) {
-    StarVulkan::QueueFamilyIndices indices{};
+StarVulkan::QueueFamilyIndices StarVulkan::FindQueueFamilies(VkPhysicalDevice physDevice) {
+    StarVulkan::QueueFamilyIndices qfIndices{};
 
     uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, nullptr);
 
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+    vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, queueFamilies.data());
 
     int i = 0;
     for (const auto& queueFamily : queueFamilies) {
         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            indices.graphicsFamily = i;
+            qfIndices.graphicsFamily = i;
         }
 
         VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(physDevice, i, surface, &presentSupport);
 
         if (presentSupport) {
-            indices.presentFamily = i;
+            qfIndices.presentFamily = i;
         }
 
-        if (indices.isComplete()) {
+        if (qfIndices.isComplete()) {
             break;
         }
 
         i++;
     }
 
-    return indices;
+    return qfIndices;
 }
 
-bool StarVulkan::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
+bool StarVulkan::CheckDeviceExtensionSupport(VkPhysicalDevice physDevice) {
     uint32_t extensionCount;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    vkEnumerateDeviceExtensionProperties(physDevice, nullptr, &extensionCount, nullptr);
 
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+    vkEnumerateDeviceExtensionProperties(physDevice, nullptr, &extensionCount, availableExtensions.data());
 
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
@@ -233,25 +239,25 @@ bool StarVulkan::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
     return requiredExtensions.empty();
 }
 
-StarVulkan::SwapChainSupportDetails StarVulkan::QuerySwapChainSupport(VkPhysicalDevice device) {
+StarVulkan::SwapChainSupportDetails StarVulkan::QuerySwapChainSupport(VkPhysicalDevice physDevice) {
     SwapChainSupportDetails details;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physDevice, surface, &details.capabilities);
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physDevice, surface, &formatCount, nullptr);
 
     if (formatCount != 0) {
         details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physDevice, surface, &formatCount, details.formats.data());
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physDevice, surface, &presentModeCount, nullptr);
 
     if (presentModeCount != 0) {
         details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physDevice, surface, &presentModeCount, details.presentModes.data());
     }
 
     return details;
@@ -262,10 +268,10 @@ StarVulkan::SwapChainSupportDetails StarVulkan::QuerySwapChainSupport(VkPhysical
 //region LogicalDevice
 
 void StarVulkan::CreateLogicalDevice() {
-    QueueFamilyIndices indices = FindQueueFamilies(physicalDevice);
+    QueueFamilyIndices qfIndices = FindQueueFamilies(physicalDevice);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+    std::set<uint32_t> uniqueQueueFamilies = {qfIndices.graphicsFamily.value(), qfIndices.presentFamily.value()};
 
     float queuePriority = 1.0f;
     for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -302,13 +308,12 @@ void StarVulkan::CreateLogicalDevice() {
         throw std::runtime_error("failed to create logical device!");
     }
 
-    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+    vkGetDeviceQueue(device, qfIndices.graphicsFamily.value(), 0, &graphicsQueue);
+    vkGetDeviceQueue(device, qfIndices.presentFamily.value(), 0, &presentQueue);
 }
 //endregion
 
 //region SwapChain
-
 void StarVulkan::CreateSwapChain() {
     SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physicalDevice);
 
@@ -332,10 +337,10 @@ void StarVulkan::CreateSwapChain() {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = FindQueueFamilies(physicalDevice);
-    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+    QueueFamilyIndices qfIndices = FindQueueFamilies(physicalDevice);
+    uint32_t queueFamilyIndices[] = {qfIndices.graphicsFamily.value(), qfIndices.presentFamily.value()};
 
-    if (indices.graphicsFamily != indices.presentFamily) {
+    if (qfIndices.graphicsFamily != qfIndices.presentFamily) {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;
         createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -389,7 +394,7 @@ VkPresentModeKHR StarVulkan::ChooseSwapPresentMode(const std::vector<VkPresentMo
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D StarVulkan::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+VkExtent2D StarVulkan::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const {
     if (capabilities.currentExtent.width != UINT32_MAX) {
         return capabilities.currentExtent;
     } else {
@@ -598,7 +603,7 @@ void StarVulkan::CreateTextureImageView(uint32_t mipLevels, VkImage textureImage
     textureImageView = CreateImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 }
 
-VkImageView StarVulkan::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
+VkImageView StarVulkan::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) const {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = image;
@@ -727,9 +732,8 @@ VkFormat StarVulkan::FindSupportedFormat(VkFormat *candidates, uint32_t candidat
     for(int i = 0; i < candidateCount; i++) {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(physicalDevice, candidates[i], &props);
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-            return candidates[i];
-        } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+        if((tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) ||
+            tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
             return candidates[i];
         }
     }
@@ -740,7 +744,7 @@ VkFormat StarVulkan::FindSupportedFormat(VkFormat *candidates, uint32_t candidat
 
 //region Command
 
-VkCommandBuffer StarVulkan::BeginSingleTimeCommands(VkCommandPool commandPool) {
+VkCommandBuffer StarVulkan::BeginSingleTimeCommands(VkCommandPool commandPool) const {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -759,7 +763,7 @@ VkCommandBuffer StarVulkan::BeginSingleTimeCommands(VkCommandPool commandPool) {
     return commandBuffer;
 }
 
-void StarVulkan::EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) {
+void StarVulkan::EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) const {
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -833,7 +837,7 @@ void StarVulkan::CreateCommandBuffers() {
 
         vkCmdBindIndexBuffer((commandBuffers)[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, NULL);
+        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
         vkCmdDrawIndexed(commandBuffers[i], indices.size(), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(commandBuffers[i]);
@@ -1056,18 +1060,14 @@ void StarVulkan::CreateRenderPass() {
 
 //region GraphicsPipeline
 void StarVulkan::CreateGraphicsPipeline() {
-    std::vector<char> vertShaderCode = FileHelper::ReadFile("Resources/Shaders/a-vert.spv");
-    std::vector<char> fragShaderCode = FileHelper::ReadFile("Resources/Shaders/a-frag.spv");
-
-
-    VkShaderModule vertShaderModule = CreateShaderModule((const uint32_t *) vertShaderCode.data(), vertShaderCode.size());
-    VkShaderModule fragShaderModule = CreateShaderModule((const uint32_t *) fragShaderCode.data(), fragShaderCode.size());
+    ShaderObject vertShader = ShaderObject("Resources/Shaders/a-vert.spv", device);
+    ShaderObject fragShader = ShaderObject("Resources/Shaders/a-frag.spv", device);
 
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.module = vertShader.shaderModule;
     vertShaderStageInfo.pName = "main";
     vertShaderStageInfo.pNext = VK_NULL_HANDLE;
     vertShaderStageInfo.flags = 0;
@@ -1075,7 +1075,7 @@ void StarVulkan::CreateGraphicsPipeline() {
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.module = fragShader.shaderModule;
     fragShaderStageInfo.pName = "main";
     fragShaderStageInfo.pNext = VK_NULL_HANDLE;
     fragShaderStageInfo.flags = 0;
@@ -1222,14 +1222,11 @@ void StarVulkan::CreateGraphicsPipeline() {
 
         printf("failed to create graphics pipeline!");
     }
-
-    vkDestroyShaderModule(device, fragShaderModule, nullptr);
-    vkDestroyShaderModule(device, vertShaderModule, nullptr);
 }
 //endregion
 
 //region Shader
-VkShaderModule StarVulkan::CreateShaderModule(const uint32_t *code, uint32_t codeSize) {
+VkShaderModule StarVulkan::CreateShaderModule(const uint32_t *code, uint32_t codeSize) const {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = codeSize;
@@ -1319,7 +1316,6 @@ void StarVulkan::GetModel() {
 
 //    struct ModelObject o = ModelHelper::LoadModel("Resources/Meshes/viking_room.obj");
 //    ModelObject o{};
-    uint32_t elementCount = 25600000;
     vertices.resize(elementCount*5);
     indices.resize(elementCount*18);
     auto a = sizeof(vertices[0])*elementCount*5;
@@ -1375,7 +1371,7 @@ void StarVulkan::CreateVertexBuffer() {
     memcpy(data, vertices.data(), bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
     CopyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
