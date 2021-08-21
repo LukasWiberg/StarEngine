@@ -10,10 +10,15 @@
 #include "../General/ModelHelper.hpp"
 
 class GameObject {
+public:
+    GameObject(const glm::vec3 &position, const glm::vec3 &rotation, const ModelObject &model);
+
+    GameObject() = default;
+
+private:
     glm::vec3 position;
     glm::vec3 rotation;
     ModelObject model;
-//    ShaderObject shader;
 };
 
 

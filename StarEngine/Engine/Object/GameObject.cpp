@@ -3,3 +3,8 @@
 //
 
 #include "GameObject.hpp"
+
+GameObject::GameObject(const glm::vec3 &position, const glm::vec3 &rotation, const ModelObject &model) : position(
+        position), rotation(rotation), model(model) {
+
+}
