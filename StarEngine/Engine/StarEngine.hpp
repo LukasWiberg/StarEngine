@@ -13,6 +13,7 @@
 #include "Input/Keyboard.hpp"
 #include "Input/Mouse.hpp"
 #include "Vulkan/StarVulkan.hpp"
+#include "Object/GameObject.hpp"
 
 class StarEngine {
 private:
@@ -29,6 +30,10 @@ private:
     void DrawFrame();
     void UpdateUniformBuffer(uint32_t currentImage);
     void UpdateVertexBuffer();
+
+    uint32_t gameObjectCount = 2;
+    std::vector<GameObject> gameObjects;
+
 public:
     static StarEngine *GetInstance();
     void StartEngine();

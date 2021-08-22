@@ -8,6 +8,7 @@
 #include <vulkan/vulkan.h>
 #include "../Types/Vertex.hpp"
 #include "../Types/UniformBuffer.hpp"
+#include "../General/ModelHelper.hpp"
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
@@ -64,7 +65,6 @@ private:
     VkPipeline graphicsPipeline{};
     //endregion
 
-    std::vector<uint32_t> indices;
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
     VkBuffer indexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory indexBufferMemory{};
@@ -180,7 +180,7 @@ private:
     //endregion
 
     //region Model
-    void GetModel();
+//    void GetModel();
     //endregion
 
     //region IndexBuffer
@@ -236,8 +236,13 @@ public:
     void CreateVertexBuffer();
     //endregion
 
-//region VertexObjects
-std::vector<Vertex> vertices;
+    //region VertexObjects
+    std::vector<Vertex> vertices;
+    //endregion
+    std::vector<uint32_t> indices;
+
+
+    void Initialize();
 };
 
 

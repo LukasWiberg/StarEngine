@@ -47,5 +47,7 @@ ModelObject ModelHelper::LoadModel(const std::string& modelPath) {
 
     ret.vertices = vertexBuffer;
     ret.indices = indexBuffer;
+    std::printf("ayo3: %d", ret.vertices.size());
+    std::printf("ayo4: %d", ret.indices.size());
     return ret;
 }

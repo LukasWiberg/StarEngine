@@ -15,12 +15,14 @@
 #include "StarVulkan.hpp"
 #include "../Constants.hpp"
 #include "../General/FileHelper.hpp"
-#include "../General/ModelHelper.hpp"
 #include "../General/ScopedClock.hpp"
 #include "../StarEngine.hpp"
 #include "../Shaders/ShaderObject.hpp"
 
 StarVulkan::StarVulkan() {
+}
+
+void StarVulkan::Initialize() {
     InitGLFW();
     CreateInstance();
     CreateSurface();
@@ -40,7 +42,7 @@ StarVulkan::StarVulkan() {
 
 
     CreateTextureSampler();
-    GetModel();
+    //    GetModel();
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateUniformBuffers();
@@ -1129,7 +1131,7 @@ void StarVulkan::CreateGraphicsPipeline() {
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
     rasterizer.depthBiasConstantFactor = 0.0f;
     rasterizer.depthBiasClamp = 0.0f;
@@ -1311,51 +1313,47 @@ void StarVulkan::CreateTextureSampler() {
 //endregion
 
 //region Model
-void StarVulkan::GetModel() {
-    ScopedClock c = ScopedClock();
-
-//    struct ModelObject o = ModelHelper::LoadModel("Resources/Meshes/viking_room.obj");
-//    ModelObject o{};
-    vertices.resize(elementCount*5);
-    indices.resize(elementCount*18);
-    auto a = sizeof(vertices[0])*elementCount*5;
-    auto b = sizeof(indices[0])*elementCount*18;
-    for(int i = 0; i<elementCount; i++) {
-        int vertexBaseIndex = i*5;
-        int indexBaseIndex = i*18;
-
-        vertices[vertexBaseIndex] = Vertex({i,i,0}, {0,0,0}, {0,0});
-        vertices[vertexBaseIndex+1] = Vertex({i+1,i,0}, {1,0,0}, {1,0});
-        vertices[vertexBaseIndex+2] = Vertex({i,i+1,0}, {0,1,0}, {0,1});
-        vertices[vertexBaseIndex+3] = Vertex({i+1,i+1,0}, {1,1,0}, {1,1});
-        vertices[vertexBaseIndex+4] = Vertex({(float) i+0.5f,(float) i+0.5f,1}, {1,0,0}, {1,0});
-
-        indices[indexBaseIndex] = (i*5)+2;
-        indices[indexBaseIndex+1] = (i*5);
-        indices[indexBaseIndex+2] = (i*5)+1;
-
-        indices[indexBaseIndex+3] = (i*5)+3;
-        indices[indexBaseIndex+4] = (i*5)+2;
-        indices[indexBaseIndex+5] = (i*5)+1;
-
-
-        indices[indexBaseIndex+6] = (i*5)+1;
-        indices[indexBaseIndex+7] = (i*5);
-        indices[indexBaseIndex+8] = (i*5)+4;
-
-        indices[indexBaseIndex+9] = (i*5);
-        indices[indexBaseIndex+10] = (i*5)+2;
-        indices[indexBaseIndex+11] = (i*5)+4;
-
-        indices[indexBaseIndex+12] = (i*5)+2;
-        indices[indexBaseIndex+13] = (i*5)+3;
-        indices[indexBaseIndex+14] = (i*5)+4;
-
-        indices[indexBaseIndex+15] = (i*5)+3;
-        indices[indexBaseIndex+16] = (i*5)+1;
-        indices[indexBaseIndex+17] = (i*5)+4;
-    }
-}
+//void StarVulkan::GetModel() {
+////    struct ModelObject o = ModelHelper::LoadModel("Resources/Meshes/viking_room.obj");
+////    ModelObject o{};
+//    vertices.resize(elementCount*5);
+//    indices.resize(elementCount*18);
+//    for(int i = 0; i<elementCount; i++) {
+//        int vertexBaseIndex = i*5;
+//        int indexBaseIndex = i*18;
+//
+//        vertices[vertexBaseIndex] = Vertex({i,i,0}, {0,0,0}, {0,0});
+//        vertices[vertexBaseIndex+1] = Vertex({i+1,i,0}, {1,0,0}, {1,0});
+//        vertices[vertexBaseIndex+2] = Vertex({i,i+1,0}, {0,1,0}, {0,1});
+//        vertices[vertexBaseIndex+3] = Vertex({i+1,i+1,0}, {1,1,0}, {1,1});
+//        vertices[vertexBaseIndex+4] = Vertex({(float) i+0.5f,(float) i+0.5f,1}, {1,0,0}, {1,0});
+//
+//        indices[indexBaseIndex] = (i*5)+2;
+//        indices[indexBaseIndex+1] = (i*5);
+//        indices[indexBaseIndex+2] = (i*5)+1;
+//
+//        indices[indexBaseIndex+3] = (i*5)+3;
+//        indices[indexBaseIndex+4] = (i*5)+2;
+//        indices[indexBaseIndex+5] = (i*5)+1;
+//
+//
+//        indices[indexBaseIndex+6] = (i*5)+1;
+//        indices[indexBaseIndex+7] = (i*5);
+//        indices[indexBaseIndex+8] = (i*5)+4;
+//
+//        indices[indexBaseIndex+9] = (i*5);
+//        indices[indexBaseIndex+10] = (i*5)+2;
+//        indices[indexBaseIndex+11] = (i*5)+4;
+//
+//        indices[indexBaseIndex+12] = (i*5)+2;
+//        indices[indexBaseIndex+13] = (i*5)+3;
+//        indices[indexBaseIndex+14] = (i*5)+4;
+//
+//        indices[indexBaseIndex+15] = (i*5)+3;
+//        indices[indexBaseIndex+16] = (i*5)+1;
+//        indices[indexBaseIndex+17] = (i*5)+4;
+//    }
+//}
 //endregion
 
 //region VertexBuffer
@@ -1383,7 +1381,6 @@ void StarVulkan::CreateVertexBuffer() {
 //region IndexBuffer
 void StarVulkan::CreateIndexBuffer() {
     size_t bufferSize = sizeof(indices[0]) * indices.size();
-
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);

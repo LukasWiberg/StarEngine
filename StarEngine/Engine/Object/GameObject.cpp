@@ -4,7 +4,21 @@
 
 #include "GameObject.hpp"
 
-GameObject::GameObject(const glm::vec3 &position, const glm::vec3 &rotation, const ModelObject &model) : position(
-        position), rotation(rotation), model(model) {
+#include <utility>
 
+GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, ModelObject model) {
+    this->position = position;
+    this->rotation = rotation;
+    this->model = std::move(model);
+    std::printf("1: %d\n", this->model.vertices.size());
+    std::printf("2: %d\n", this->model.indices.size());
+
+    for(auto &vertex : this->model.vertices) {
+        vertex.pos += position;
+    }
+}
+
+GameObject::GameObject(glm::vec3 position, glm::vec3 rotation) {
+    this->position = position;
+    this->rotation = rotation;
 }

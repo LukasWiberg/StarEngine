@@ -20,6 +20,26 @@ StarEngine::StarEngine() {
     srand((unsigned)time(nullptr));
     vulkan = new StarVulkan();
 
+    gameObjects.resize(gameObjectCount);
+    for(int i = 0; i<gameObjectCount; i++) {
+        gameObjects[i] = GameObject(glm::vec3(i,i,i), glm::vec3(0,0,0), ModelHelper::LoadModel("Resources/Meshes/viking_room.obj"));
+//        this->vulkan->CreateModelBuffers(gameObjects[i].model);
+        std::printf("AYO: %d\n", gameObjects[i].model.vertices.size());
+        std::printf("AYO2: %d\n", gameObjects[i].model.indices.size());
+        uint32_t lastVertexIndex = this->vulkan->vertices.size();
+        this->vulkan->vertices.resize(lastVertexIndex+gameObjects[i].model.vertices.size());
+        for(int j = 0; j<gameObjects[i].model.vertices.size(); j++) {
+            this->vulkan->vertices[lastVertexIndex+j] = gameObjects[i].model.vertices[j];
+        }
+        uint32_t lastIndexIndex = this->vulkan->indices.size();
+        this->vulkan->indices.resize(lastIndexIndex+gameObjects[i].model.indices.size());
+        for(int j = 0; j<gameObjects[i].model.indices.size(); j++) {
+            this->vulkan->indices[lastIndexIndex+j] = lastVertexIndex+gameObjects[i].model.indices[j];
+        }
+    }
+
+    vulkan->Initialize();
+
     camera = new Camera(1.0f);
     //Not yet used
     keyboard = new Keyboard(camera);
@@ -36,7 +56,7 @@ void StarEngine::StartEngine() {
 void StarEngine::EngineLoop() {
     ScopedClock c = ScopedClock();
     while(!glfwWindowShouldClose(vulkan->window)) {
-        ScopedClock d = ScopedClock("FrameTime: ", true);
+        ScopedClock d = ScopedClock("FPS: ", true);
         glfwPollEvents();
         camera->UpdateCamera(c.GetElapsedSeconds());
         c.Reset();
@@ -136,15 +156,15 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
     vkUnmapMemory(vulkan->device, vulkan->uniformBuffersMemory[currentImage]);
 }
 
-void StarEngine::UpdateVertexBuffer() {
-    for(Vertex &vert : vulkan->vertices) {
-        vert.pos = vert.pos + glm::vec3((((float)rand()/RAND_MAX)-0.5f)*0.01f, (((float)rand()/RAND_MAX)-0.5f)*0.01f, (((float)rand()/RAND_MAX)-0.5f)*0.01f);
-    }
-
-    vkDeviceWaitIdle(vulkan->device);
-
-    void* data;
-    vkMapMemory(vulkan->device, vulkan->vertexBufferMemory, 0, sizeof(vulkan->vertices[0])*vulkan->vertices.size(), 0, &data);
-    memcpy(data, vulkan->vertices.data(), sizeof(vulkan->vertices[0])*vulkan->vertices.size());
-    vkUnmapMemory(vulkan->device, vulkan->vertexBufferMemory);
-}
+//void StarEngine::UpdateVertexBuffer() {
+//    for(Vertex &vert : vulkan->vertices) {
+//        vert.pos = vert.pos + glm::vec3((((float)rand()/RAND_MAX)-0.5f)*0.01f, (((float)rand()/RAND_MAX)-0.5f)*0.01f, (((float)rand()/RAND_MAX)-0.5f)*0.01f);
+//    }
+//
+//    vkDeviceWaitIdle(vulkan->device);
+//
+//    void* data;
+//    vkMapMemory(vulkan->device, vulkan->vertexBufferMemory, 0, sizeof(vulkan->vertices[0])*vulkan->vertices.size(), 0, &data);
+//    memcpy(data, vulkan->vertices.data(), sizeof(vulkan->vertices[0])*vulkan->vertices.size());
+//    vkUnmapMemory(vulkan->device, vulkan->vertexBufferMemory);
+//}
