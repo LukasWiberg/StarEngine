@@ -23,9 +23,6 @@ StarEngine::StarEngine() {
     gameObjects.resize(gameObjectCount);
     for(int i = 0; i<gameObjectCount; i++) {
         gameObjects[i] = GameObject(glm::vec3(i,i,i), glm::vec3(0,0,0), ModelHelper::LoadModel("Resources/Meshes/viking_room.obj"));
-//        this->vulkan->CreateModelBuffers(gameObjects[i].model);
-        std::printf("AYO: %d\n", gameObjects[i].model.vertices.size());
-        std::printf("AYO2: %d\n", gameObjects[i].model.indices.size());
         uint32_t lastVertexIndex = this->vulkan->vertices.size();
         this->vulkan->vertices.resize(lastVertexIndex+gameObjects[i].model.vertices.size());
         for(int j = 0; j<gameObjects[i].model.vertices.size(); j++) {
