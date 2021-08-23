@@ -99,11 +99,52 @@ void StarEngine::DrawFrame() {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &vulkan->commandBuffers[imageIndex];
 
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = this->vulkan->renderPass;
+    renderPassInfo.framebuffer = this->vulkan->swapChainFrameBuffers[currentFrame];
+    VkOffset2D offset = {0, 0};
+    renderPassInfo.renderArea.offset = offset;
+    renderPassInfo.renderArea.extent = this->vulkan->swapChainExtent;
+
+    VkClearValue clearValues[2];
+    VkClearColorValue clearColor = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    VkClearDepthStencilValue clearDepthStencil = {1.0f, 0};
+    clearValues[0].color = clearColor;
+    clearValues[1].depthStencil = clearDepthStencil;
+
+    renderPassInfo.clearValueCount = 2;
+    renderPassInfo.pClearValues = clearValues;
+
+    VkCommandBuffer cmdBuffer = this->vulkan->BeginSingleTimeCommands(this->vulkan->mainCommandPool);
+    vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->graphicsPipeline);
+
+    VkBuffer vertexBuffers[] = {this->vulkan->vertexBuffer};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
+
+    vkCmdBindIndexBuffer(cmdBuffer, this->vulkan->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
+
+    for(int i = 0; i<gameObjects.size(); i++) {
+        PushConstantData constants{};
+        constants.transform = gameObjects[i].position;
+        vkCmdPushConstants(cmdBuffer, this->vulkan->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData), &constants);
+        vkCmdDrawIndexed(cmdBuffer, gameObjects[i].model.indices.size(), 1, 0, 0, 0);
+    }
+
+    vkCmdEndRenderPass(cmdBuffer);
+    this->vulkan->EndSingleTimeCommands(cmdBuffer, this->vulkan->mainCommandPool, this->vulkan->graphicsQueue);
+
     VkSemaphore signalSemaphores[] = {vulkan->renderFinishedSemaphores[currentFrame]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     vkResetFences(vulkan->device, 1, &vulkan->inFlightFences[currentFrame]);
+
+
 
     if(vkQueueSubmit(vulkan->graphicsQueue, 1, &submitInfo, vulkan->inFlightFences[currentFrame]) != VK_SUCCESS) {
         printf("failed to submit draw command buffer!");
@@ -139,6 +180,7 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
 
     UniformBufferObject ubo{};
 //    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));

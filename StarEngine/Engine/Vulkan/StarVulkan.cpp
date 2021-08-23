@@ -830,8 +830,8 @@ void StarVulkan::CreateCommandBuffers() {
         renderPassInfo.clearValueCount = 2;
         renderPassInfo.pClearValues = clearValues;
 
-        vkCmdBeginRenderPass((commandBuffers)[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline((commandBuffers)[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+//        vkCmdBeginRenderPass((commandBuffers)[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+//        vkCmdBindPipeline((commandBuffers)[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
         VkBuffer vertexBuffers[] = {vertexBuffer};
         VkDeviceSize offsets[] = {0};
@@ -840,9 +840,15 @@ void StarVulkan::CreateCommandBuffers() {
         vkCmdBindIndexBuffer((commandBuffers)[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
-        vkCmdDrawIndexed(commandBuffers[i], indices.size(), 1, 0, 0, 0);
 
-        vkCmdEndRenderPass(commandBuffers[i]);
+//        PushConstantData push{};
+//        push.transform = glm::mat4(-5.0f);
+
+//        vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData), &push);
+
+//        vkCmdDrawIndexed(commandBuffers[i], indices.size(), 1, 0, 0, 0);
+
+//        vkCmdEndRenderPass(commandBuffers[i]);
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
@@ -1182,13 +1188,18 @@ void StarVulkan::CreateGraphicsPipeline() {
     depthStencil.front = {}; // Optional
     depthStencil.back = {}; // Optional
 
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.size = sizeof(PushConstantData);
+    pushConstantRange.offset = 0;
+
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutCreateInfo.setLayoutCount = 1;
     pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
     pipelineLayoutCreateInfo.pNext = VK_NULL_HANDLE;
-    pipelineLayoutCreateInfo.pPushConstantRanges = VK_NULL_HANDLE;
-    pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+    pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+    pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
     pipelineLayoutCreateInfo.flags = 0;
 
     if(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {

@@ -44,7 +44,6 @@ private:
     VkSurfaceKHR surface{};
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-    VkRenderPass renderPass{};
     uint32_t elementCount = 51200;
 
     TextureObject mainTex{};
@@ -53,20 +52,10 @@ private:
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat{};
     std::vector<VkImageView> swapChainImageViews;
-    std::vector<VkFramebuffer> swapChainFrameBuffers;
     //endregion
 
-    //region Command
-    VkCommandPool mainCommandPool{};
-    //endregion
 
-    //region PipelineObjects
-    VkPipelineLayout pipelineLayout{};
-    VkPipeline graphicsPipeline{};
-    //endregion
 
-    VkBuffer vertexBuffer = VK_NULL_HANDLE;
-    VkBuffer indexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory indexBufferMemory{};
     //endregion
 
@@ -77,7 +66,6 @@ private:
     //region DescriptorSets
     VkDescriptorPool descriptorPool{};
     VkDescriptorSetLayout descriptorSetLayout{};
-    std::vector<VkDescriptorSet> descriptorSets;
     //endregion
 
     //region Depth
@@ -131,13 +119,6 @@ private:
     void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandPool commandPool, VkQueue queue);
     VkFormat FindDepthFormat();
     VkFormat FindSupportedFormat(VkFormat *candidates, uint32_t candidateCount, VkImageTiling tiling, VkFormatFeatureFlags features);
-    //endregion
-
-    //region Command
-    VkCommandBuffer BeginSingleTimeCommands(VkCommandPool commandPool) const;
-    void EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) const;
-    void CreateCommandPool(VkCommandPool &commandPool);
-    void CreateCommandBuffers();
     //endregion
 
     //region General
@@ -240,6 +221,28 @@ public:
     std::vector<Vertex> vertices;
     //endregion
     std::vector<uint32_t> indices;
+
+    //region PipelineObjects
+    VkPipelineLayout pipelineLayout{};
+    VkPipeline graphicsPipeline{};
+    //endregion
+
+    //region Command
+    VkCommandPool mainCommandPool{};
+
+    VkCommandBuffer BeginSingleTimeCommands(VkCommandPool commandPool) const;
+    void EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) const;
+    void CreateCommandPool(VkCommandPool &commandPool);
+    void CreateCommandBuffers();
+    //endregion
+
+    VkRenderPass renderPass{};
+    std::vector<VkFramebuffer> swapChainFrameBuffers;
+    std::vector<VkDescriptorSet> descriptorSets;
+    VkBuffer vertexBuffer = VK_NULL_HANDLE;
+    VkBuffer indexBuffer = VK_NULL_HANDLE;
+
+
 
 
     void Initialize();

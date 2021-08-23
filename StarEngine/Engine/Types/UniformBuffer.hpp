@@ -14,5 +14,9 @@ struct UniformBufferObject {
     alignas(16) glm::mat4 proj;
 };
 
+struct PushConstantData {
+    alignas(16) glm::vec3 transform;
+};
+
 
 #endif //STARENGINE_UNIFORMBUFFER_HPP
