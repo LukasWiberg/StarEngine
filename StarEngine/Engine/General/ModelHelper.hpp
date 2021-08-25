@@ -17,6 +17,7 @@ struct ModelObject {
 class ModelHelper {
 public:
     static ModelObject LoadModel(const std::string& modelPath);
+    static ModelObject CopyModel(ModelObject &model);
 };
 
 #endif //STARENGINE_MODELHELPER_HPP

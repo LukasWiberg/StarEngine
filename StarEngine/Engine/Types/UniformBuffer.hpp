@@ -15,7 +15,7 @@ struct UniformBufferObject {
 };
 
 struct PushConstantData {
-    alignas(16) glm::vec3 transform;
+    alignas(16) glm::mat4 transform;
 };
 
 
