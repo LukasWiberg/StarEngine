@@ -9,22 +9,28 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include "../General/ModelHelper.hpp"
+#include "Component.hpp"
 
 class GameObject {
 private:
+    std::vector<Component> components;
 
 public:
     glm::vec3 position{};
-    glm::quat rotation{};
+    glm::vec3 rotation{};
     ModelObject model;
     glm::mat4 transform{};
 
     void UpdateTransform();
 
-    GameObject(glm::vec3 position, glm::quat rotation, ModelObject model);
-    GameObject(glm::vec3 position, glm::quat rotation);
+    GameObject(glm::vec3 position, glm::vec3 rotation, ModelObject model);
+    GameObject(glm::vec3 position, glm::vec3 rotation);
     explicit GameObject(GameObject *gameObject);
     GameObject() = default;
+
+    void LogicUpdate(double frameTime);
+    void GraphicsUpdate(double frameTime);
+
 };
 
 

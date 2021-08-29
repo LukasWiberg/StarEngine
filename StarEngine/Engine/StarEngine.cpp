@@ -24,7 +24,7 @@ StarEngine::StarEngine() {
     {
         auto c = ScopedClock("GameObject creation time: ", false);
         gameObjects.resize(gameObjectCount);
-        gameObjects[0] = GameObject(glm::vec3(0,0,0), glm::toQuat(glm::orientate3(glm::vec3(0.0f, 0.0f, 0.0f))), ModelHelper::LoadModel("Resources/Meshes/a.obj"));
+        gameObjects[0] = GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f), ModelHelper::LoadModel("Resources/Meshes/a.obj"));
 
         for(int i = 1; i<gameObjectCount; i++) {
             gameObjects[i] = GameObject(&gameObjects[0]);
@@ -63,12 +63,28 @@ void StarEngine::EngineLoop() {
         ScopedClock d = ScopedClock("FPS: ", true);
         glfwPollEvents();
         auto frameTime = c.GetElapsedSeconds();
+
+        this->LogicUpdate(frameTime);
+        this->GraphicsUpdate(frameTime);
+
         camera->UpdateCamera(frameTime);
         c.Reset();
 //        UpdateVertexBuffer();
         DrawFrame(frameTime);
     }
     vulkan->Cleanup();
+}
+
+void StarEngine::LogicUpdate(double frameTime) {
+    for(int i = 0; i<gameObjects.size(); i++) {
+        gameObjects[i].LogicUpdate(frameTime);
+    }
+}
+
+void StarEngine::GraphicsUpdate(double frameTime) {
+    for(int i = 0; i<gameObjects.size(); i++) {
+        gameObjects[i].GraphicsUpdate(frameTime);
+    }
 }
 
 void StarEngine::DrawFrame(double frameTime) {
@@ -103,15 +119,13 @@ void StarEngine::DrawFrame(double frameTime) {
     vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
 
     int32_t vertexOffset = 0;
-    for(int i = 0; i<gameObjects.size(); i++) {
-        gameObjects[i].position += glm::vec3((((float)rand()/RAND_MAX)-0.5f)*frameTime, (((float)rand()/RAND_MAX)-0.5f)*frameTime, (((float)rand()/RAND_MAX)-0.5f)*frameTime);
-        gameObjects[i].rotation = glm::toQuat(glm::orientate3(glm::vec3(rotIterator, 0.0f, 0.0f)));
+    for(auto & gameObject : gameObjects) {
         PushConstantData constants{};
-        gameObjects[i].UpdateTransform();
-        constants.transform = gameObjects[i].transform;
+        constants.transform = gameObject.transform;
+//        constants.transform = glm::mat4(1.0f);
         vkCmdPushConstants(cmdBuffer, this->vulkan->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData), &constants);
-        vkCmdDrawIndexed(cmdBuffer, gameObjects[i].model.indices.size(), 1, 0, vertexOffset, 0);
-        vertexOffset += (int32_t) gameObjects[i].model.vertices.size();
+        vkCmdDrawIndexed(cmdBuffer, gameObject.model.indices.size(), 1, 0, vertexOffset, 0);
+        vertexOffset += (int32_t) gameObject.model.vertices.size();
     }
 
 
