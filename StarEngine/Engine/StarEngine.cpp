@@ -24,11 +24,14 @@ StarEngine::StarEngine() {
     {
         auto c = ScopedClock("GameObject creation time: ", false);
         gameObjects.resize(gameObjectCount);
-        gameObjects[0] = GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f), ModelHelper::LoadModel("Resources/Meshes/a.obj"));
 
-        for(int i = 1; i<gameObjectCount; i++) {
-            gameObjects[i] = GameObject(&gameObjects[0]);
-//            gameObjects[i] = GameObject(glm::vec3(0,0,0), glm::vec3(0,0,0), ModelHelper::LoadModel("Resources/Meshes/a.obj"));
+        for(int i = 0; i<gameObjectCount; i++) {
+            if(i == 0) {
+                gameObjects[0] = GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f), ModelHelper::LoadModel("Resources/Meshes/a.obj"));
+            } else {
+                gameObjects[i] = GameObject(&gameObjects[0]);
+//                gameObjects[i] = GameObject(glm::vec3(0,0,0), glm::vec3(0,0,0), ModelHelper::LoadModel("Resources/Meshes/a.obj"));
+            }
             uint32_t lastVertexIndex = this->vulkan->vertices.size();
             this->vulkan->vertices.resize(lastVertexIndex+gameObjects[i].model.vertices.size());
             for(int j = 0; j<gameObjects[i].model.vertices.size(); j++) {
