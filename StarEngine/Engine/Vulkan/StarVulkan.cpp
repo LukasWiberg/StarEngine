@@ -38,7 +38,7 @@ void StarVulkan::Initialize() {
     CreateDepthResources();
     CreateFrameBuffers();
 
-    mainTex = CreateTexture((char*)"Resources/Textures/viking_room.png", false, mainCommandPool, graphicsQueue);
+    mainTex = CreateTexture((char*)"Resources/Textures/b.png", false, mainCommandPool, graphicsQueue);
 
 
     CreateTextureSampler();
@@ -915,11 +915,18 @@ void StarVulkan::CreateDescriptorSetLayout() {
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    VkDescriptorSetLayoutBinding bindings[2] = {uboLayoutBinding, samplerLayoutBinding};
+    VkDescriptorSetLayoutBinding resLayoutBinding{};
+    resLayoutBinding.binding = 2;
+    resLayoutBinding.descriptorCount = 1;
+    resLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    resLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    resLayoutBinding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutBinding bindings[3] = {uboLayoutBinding, samplerLayoutBinding, resLayoutBinding};
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 2;
+    layoutInfo.bindingCount = 3;
     layoutInfo.pBindings = bindings;
 
 
@@ -929,11 +936,13 @@ void StarVulkan::CreateDescriptorSetLayout() {
 }
 
 void StarVulkan::CreateDescriptorPool() {
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    std::array<VkDescriptorPoolSize, 3> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+    poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -966,12 +975,17 @@ void StarVulkan::CreateDescriptorSets() {
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
+        VkDescriptorBufferInfo resolutionBufferInfo{};
+        resolutionBufferInfo.buffer = generalDataBuffer;
+        resolutionBufferInfo.offset = 0;
+        resolutionBufferInfo.range = sizeof(GeneralData);
+
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = mainTex.textureImageView;
         imageInfo.sampler = textureSampler;
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = descriptorSets[i];
@@ -988,6 +1002,14 @@ void StarVulkan::CreateDescriptorSets() {
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pImageInfo = &imageInfo;
+
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = descriptorSets[i];
+        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].dstArrayElement = 0;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pBufferInfo = &resolutionBufferInfo;
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -1434,6 +1456,20 @@ void StarVulkan::CreateUniformBuffers() {
     for (size_t i = 0; i < swapChainImages.size(); i++) {
         CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
     }
+
+
+    VkDeviceSize bufferSizeRes = sizeof(GeneralData);
+    CreateBuffer(bufferSizeRes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, generalDataBuffer, generalDataBufferMemory);
+
+    GeneralData generalData{};
+    int x, y;
+    void* data;
+    vkMapMemory(this->device, this->generalDataBufferMemory, 0, sizeof(GeneralData), 0, &data);
+    glfwGetWindowSize(this->window, &x, &y);
+    generalData.resolution.x = (float)x;
+    generalData.resolution.y = (float)y;
+    memcpy(data, &generalData.resolution, sizeof(generalData.resolution));
+    vkUnmapMemory(this->device, this->generalDataBufferMemory);
 }
 //endregion
 
@@ -1519,6 +1555,9 @@ void StarVulkan::CleanupSwapChain() {
         vkDestroyBuffer(device, uniformBuffers[i], nullptr);
         vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
     }
+
+    vkDestroyBuffer(device, generalDataBuffer, nullptr);
+    vkFreeMemory(device, generalDataBufferMemory, nullptr);
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 }

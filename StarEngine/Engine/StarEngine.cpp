@@ -27,7 +27,7 @@ StarEngine::StarEngine() {
 
         for(int i = 0; i<gameObjectCount; i++) {
             if(i == 0) {
-                gameObjects[0] = GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f), ModelHelper::LoadModel("Resources/Meshes/a.obj"));
+                gameObjects[0] = GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f), ModelHelper::LoadModel("Resources/Meshes/b.obj"));
             } else {
                 gameObjects[i] = GameObject(&gameObjects[0]);
 //                gameObjects[i] = GameObject(glm::vec3(0,0,0), glm::vec3(0,0,0), ModelHelper::LoadModel("Resources/Meshes/a.obj"));

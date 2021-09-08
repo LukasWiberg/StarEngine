@@ -134,6 +134,7 @@ private:
 
     //region UniformBuffers
     std::vector<VkBuffer> uniformBuffers;
+    VkBuffer generalDataBuffer;
     //endregion
 
     //region RenderPass
@@ -194,6 +195,7 @@ public:
     VkExtent2D swapChainExtent{};
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     VkDeviceMemory vertexBufferMemory{};
+    VkDeviceMemory generalDataBufferMemory;
 
 
     //region SyncObjects
