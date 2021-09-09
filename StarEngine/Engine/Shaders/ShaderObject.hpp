@@ -19,7 +19,6 @@ private:
 public:
     VkShaderModule shaderModule = nullptr;
 
-
     ShaderObject(std::string path, VkDevice device);
     static VkShaderModule CreateShaderModule(VkDevice device, const uint32_t *code, uint32_t codeSize) ;
 

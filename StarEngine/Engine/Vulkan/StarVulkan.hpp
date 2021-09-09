@@ -9,6 +9,7 @@
 #include "../Types/Vertex.hpp"
 #include "../Types/UniformBuffer.hpp"
 #include "../General/ModelHelper.hpp"
+#include "RenderPipeline.hpp"
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
@@ -53,7 +54,6 @@ private:
     VkFormat swapChainImageFormat{};
     std::vector<VkImageView> swapChainImageViews;
     //endregion
-
 
 
     VkDeviceMemory indexBufferMemory{};
@@ -141,14 +141,6 @@ private:
     void CreateRenderPass();
     //endregion
 
-    //region GraphicsPipeline
-    void CreateGraphicsPipeline();
-    //endregion
-
-    //region Shader
-    VkShaderModule CreateShaderModule(const uint32_t *code, uint32_t codeSize) const;
-    //endregion
-
     //region Depth
     void CreateDepthResources();
     //endregion
@@ -159,10 +151,6 @@ private:
 
     //region TextureSampler
     void CreateTextureSampler();
-    //endregion
-
-    //region Model
-//    void GetModel();
     //endregion
 
     //region IndexBuffer
@@ -225,8 +213,8 @@ public:
     std::vector<uint32_t> indices;
 
     //region PipelineObjects
-    VkPipelineLayout pipelineLayout{};
-    VkPipeline graphicsPipeline{};
+    std::vector<VkPipeline> graphicsPipelines;
+    std::vector<RenderPipeline*> renderPipelines;
     //endregion
 
     //region Command
@@ -245,9 +233,13 @@ public:
     VkBuffer indexBuffer = VK_NULL_HANDLE;
 
 
+    //region GraphicsPipeline
+    void CreateGraphicsPipeline();
+    //endregion
 
 
     void Initialize();
+    //endregion
 };
 
 
