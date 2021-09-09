@@ -10,13 +10,13 @@
 #include <vulkan/vulkan_core.h>
 
 struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
+    glm::vec3 pos{};
+    glm::vec3 color{};
+    glm::vec2 texCoord{};
 
     Vertex(const glm::vec3 &pos, const glm::vec3 &color, const glm::vec2 &texCoord);
 
-    Vertex();
+    Vertex() = default;
 
     static VkVertexInputBindingDescription GetBindingDescription();
 

@@ -14,11 +14,15 @@
 #include <stb_image.h>
 #include "StarVulkan.hpp"
 #include "../Constants.hpp"
-#include "../General/FileHelper.hpp"
-#include "../General/ModelHelper.hpp"
+#include "../StarEngine.hpp"
+#include "../Shaders/ShaderObject.hpp"
 #include "../General/ScopedClock.hpp"
+#include "RenderPipeline.hpp"
 
 StarVulkan::StarVulkan() {
+}
+
+void StarVulkan::Initialize() {
     InitGLFW();
     CreateInstance();
     CreateSurface();
@@ -34,11 +38,10 @@ StarVulkan::StarVulkan() {
     CreateDepthResources();
     CreateFrameBuffers();
 
-    mainTex = CreateTexture((char*)"Resources/Textures/viking_room.png", false, mainCommandPool, graphicsQueue);
+    mainTex = CreateTexture((char*)"Resources/Textures/b.png", false, mainCommandPool, graphicsQueue);
 
 
     CreateTextureSampler();
-    GetModel();
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateUniformBuffers();
@@ -54,13 +57,18 @@ void StarVulkan::InitGLFW() {
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Vulkan", nullptr, nullptr);
     glfwSetWindowUserPointer(window, this);
     //Disabled for now, static function...
-    //glfwSetFramebufferSizeCallback(window, FramebufferResizeCallback);
+    glfwSetFramebufferSizeCallback(window, StarVulkan::FramebufferResizeCallback);
+}
+
+void StarVulkan::FramebufferResizeCallback(GLFWwindow* glfwWindow, int width, int height) {
+    StarEngine *engine = StarEngine::GetInstance();
+    engine->framebufferResized = true;
 }
 
 void StarVulkan::CreateSurface() {
     if(glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create window surface!");
-    };
+    }
 }
 
 void StarVulkan::CreateInstance() {
@@ -139,7 +147,6 @@ std::vector<const char*> StarVulkan::GetRequiredExtensions() {
 }
 
 //region PhysicalDevice
-
 VkPhysicalDevice StarVulkan::PickPhysicalDevice() {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -167,62 +174,62 @@ VkPhysicalDevice StarVulkan::PickPhysicalDevice() {
 }
 
 
-bool StarVulkan::IsDeviceSuitable(VkPhysicalDevice device) {
-    QueueFamilyIndices indices = FindQueueFamilies(device);
+bool StarVulkan::IsDeviceSuitable(VkPhysicalDevice physDevice) {
+    QueueFamilyIndices qfIndices = FindQueueFamilies(physDevice);
 
-    bool extensionsSupported = CheckDeviceExtensionSupport(device);
+    bool extensionsSupported = CheckDeviceExtensionSupport(physDevice);
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-        SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(device);
+        SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physDevice);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
     VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+    vkGetPhysicalDeviceFeatures(physDevice, &supportedFeatures);
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate  && supportedFeatures.samplerAnisotropy;
+    return qfIndices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
 
-StarVulkan::QueueFamilyIndices StarVulkan::FindQueueFamilies(VkPhysicalDevice device) {
-    StarVulkan::QueueFamilyIndices indices{};
+StarVulkan::QueueFamilyIndices StarVulkan::FindQueueFamilies(VkPhysicalDevice physDevice) {
+    StarVulkan::QueueFamilyIndices qfIndices{};
 
     uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, nullptr);
 
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+    vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, queueFamilies.data());
 
     int i = 0;
     for (const auto& queueFamily : queueFamilies) {
         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            indices.graphicsFamily = i;
+            qfIndices.graphicsFamily = i;
         }
 
         VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(physDevice, i, surface, &presentSupport);
 
         if (presentSupport) {
-            indices.presentFamily = i;
+            qfIndices.presentFamily = i;
         }
 
-        if (indices.isComplete()) {
+        if (qfIndices.isComplete()) {
             break;
         }
 
         i++;
     }
 
-    return indices;
+    return qfIndices;
 }
 
-bool StarVulkan::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
+bool StarVulkan::CheckDeviceExtensionSupport(VkPhysicalDevice physDevice) {
     uint32_t extensionCount;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    vkEnumerateDeviceExtensionProperties(physDevice, nullptr, &extensionCount, nullptr);
 
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+    vkEnumerateDeviceExtensionProperties(physDevice, nullptr, &extensionCount, availableExtensions.data());
 
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
@@ -233,25 +240,25 @@ bool StarVulkan::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
     return requiredExtensions.empty();
 }
 
-StarVulkan::SwapChainSupportDetails StarVulkan::QuerySwapChainSupport(VkPhysicalDevice device) {
+StarVulkan::SwapChainSupportDetails StarVulkan::QuerySwapChainSupport(VkPhysicalDevice physDevice) {
     SwapChainSupportDetails details;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physDevice, surface, &details.capabilities);
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physDevice, surface, &formatCount, nullptr);
 
     if (formatCount != 0) {
         details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physDevice, surface, &formatCount, details.formats.data());
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physDevice, surface, &presentModeCount, nullptr);
 
     if (presentModeCount != 0) {
         details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physDevice, surface, &presentModeCount, details.presentModes.data());
     }
 
     return details;
@@ -262,10 +269,10 @@ StarVulkan::SwapChainSupportDetails StarVulkan::QuerySwapChainSupport(VkPhysical
 //region LogicalDevice
 
 void StarVulkan::CreateLogicalDevice() {
-    QueueFamilyIndices indices = FindQueueFamilies(physicalDevice);
+    QueueFamilyIndices qfIndices = FindQueueFamilies(physicalDevice);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+    std::set<uint32_t> uniqueQueueFamilies = {qfIndices.graphicsFamily.value(), qfIndices.presentFamily.value()};
 
     float queuePriority = 1.0f;
     for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -302,13 +309,12 @@ void StarVulkan::CreateLogicalDevice() {
         throw std::runtime_error("failed to create logical device!");
     }
 
-    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+    vkGetDeviceQueue(device, qfIndices.graphicsFamily.value(), 0, &graphicsQueue);
+    vkGetDeviceQueue(device, qfIndices.presentFamily.value(), 0, &presentQueue);
 }
 //endregion
 
 //region SwapChain
-
 void StarVulkan::CreateSwapChain() {
     SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physicalDevice);
 
@@ -332,10 +338,10 @@ void StarVulkan::CreateSwapChain() {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = FindQueueFamilies(physicalDevice);
-    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+    QueueFamilyIndices qfIndices = FindQueueFamilies(physicalDevice);
+    uint32_t queueFamilyIndices[] = {qfIndices.graphicsFamily.value(), qfIndices.presentFamily.value()};
 
-    if (indices.graphicsFamily != indices.presentFamily) {
+    if (qfIndices.graphicsFamily != qfIndices.presentFamily) {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;
         createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -389,7 +395,7 @@ VkPresentModeKHR StarVulkan::ChooseSwapPresentMode(const std::vector<VkPresentMo
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D StarVulkan::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+VkExtent2D StarVulkan::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const {
     if (capabilities.currentExtent.width != UINT32_MAX) {
         return capabilities.currentExtent;
     } else {
@@ -598,7 +604,7 @@ void StarVulkan::CreateTextureImageView(uint32_t mipLevels, VkImage textureImage
     textureImageView = CreateImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 }
 
-VkImageView StarVulkan::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
+VkImageView StarVulkan::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) const {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = image;
@@ -727,9 +733,8 @@ VkFormat StarVulkan::FindSupportedFormat(VkFormat *candidates, uint32_t candidat
     for(int i = 0; i < candidateCount; i++) {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(physicalDevice, candidates[i], &props);
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-            return candidates[i];
-        } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+        if((tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) ||
+            tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
             return candidates[i];
         }
     }
@@ -740,7 +745,7 @@ VkFormat StarVulkan::FindSupportedFormat(VkFormat *candidates, uint32_t candidat
 
 //region Command
 
-VkCommandBuffer StarVulkan::BeginSingleTimeCommands(VkCommandPool commandPool) {
+VkCommandBuffer StarVulkan::BeginSingleTimeCommands(VkCommandPool commandPool) const {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -759,7 +764,7 @@ VkCommandBuffer StarVulkan::BeginSingleTimeCommands(VkCommandPool commandPool) {
     return commandBuffer;
 }
 
-void StarVulkan::EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) {
+void StarVulkan::EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) const {
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -824,19 +829,14 @@ void StarVulkan::CreateCommandBuffers() {
         renderPassInfo.clearValueCount = 2;
         renderPassInfo.pClearValues = clearValues;
 
-        vkCmdBeginRenderPass((commandBuffers)[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline((commandBuffers)[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-
         VkBuffer vertexBuffers[] = {vertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers((commandBuffers)[i], 0, 1, vertexBuffers, offsets);
 
         vkCmdBindIndexBuffer((commandBuffers)[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, NULL);
-        vkCmdDrawIndexed(commandBuffers[i], indices.size(), 1, 0, 0, 0);
+        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, renderPipelines[0]->pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-        vkCmdEndRenderPass(commandBuffers[i]);
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
@@ -903,11 +903,18 @@ void StarVulkan::CreateDescriptorSetLayout() {
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    VkDescriptorSetLayoutBinding bindings[2] = {uboLayoutBinding, samplerLayoutBinding};
+    VkDescriptorSetLayoutBinding resLayoutBinding{};
+    resLayoutBinding.binding = 2;
+    resLayoutBinding.descriptorCount = 1;
+    resLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    resLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    resLayoutBinding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutBinding bindings[3] = {uboLayoutBinding, samplerLayoutBinding, resLayoutBinding};
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 2;
+    layoutInfo.bindingCount = 3;
     layoutInfo.pBindings = bindings;
 
 
@@ -917,11 +924,13 @@ void StarVulkan::CreateDescriptorSetLayout() {
 }
 
 void StarVulkan::CreateDescriptorPool() {
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    std::array<VkDescriptorPoolSize, 3> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+    poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -954,12 +963,17 @@ void StarVulkan::CreateDescriptorSets() {
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
+        VkDescriptorBufferInfo resolutionBufferInfo{};
+        resolutionBufferInfo.buffer = generalDataBuffer;
+        resolutionBufferInfo.offset = 0;
+        resolutionBufferInfo.range = sizeof(GeneralData);
+
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = mainTex.textureImageView;
         imageInfo.sampler = textureSampler;
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = descriptorSets[i];
@@ -976,6 +990,14 @@ void StarVulkan::CreateDescriptorSets() {
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pImageInfo = &imageInfo;
+
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = descriptorSets[i];
+        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].dstArrayElement = 0;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pBufferInfo = &resolutionBufferInfo;
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -1056,193 +1078,13 @@ void StarVulkan::CreateRenderPass() {
 
 //region GraphicsPipeline
 void StarVulkan::CreateGraphicsPipeline() {
-    std::vector<char> vertShaderCode = FileHelper::ReadFile("Resources/Shaders/a-vert.spv");
-    std::vector<char> fragShaderCode = FileHelper::ReadFile("Resources/Shaders/a-frag.spv");
+    renderPipelines.push_back(new RenderPipeline(device, swapChainExtent, descriptorSetLayout, renderPass));
+    graphicsPipelines.resize(1);
 
-
-    VkShaderModule vertShaderModule = CreateShaderModule((const uint32_t *) vertShaderCode.data(), vertShaderCode.size());
-    VkShaderModule fragShaderModule = CreateShaderModule((const uint32_t *) fragShaderCode.data(), fragShaderCode.size());
-
-
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
-    vertShaderStageInfo.pName = "main";
-    vertShaderStageInfo.pNext = VK_NULL_HANDLE;
-    vertShaderStageInfo.flags = 0;
-
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
-    fragShaderStageInfo.pName = "main";
-    fragShaderStageInfo.pNext = VK_NULL_HANDLE;
-    fragShaderStageInfo.flags = 0;
-
-
-    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-
-    VkVertexInputBindingDescription bindingDescription = Vertex::GetBindingDescription();
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::GetAttributeDescriptions();
-
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-    vertexInputInfo.pNext = VK_NULL_HANDLE;
-
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    inputAssembly.primitiveRestartEnable = VK_FALSE;
-    inputAssembly.flags = 0;
-    inputAssembly.pNext = VK_NULL_HANDLE;
-
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = (float) swapChainExtent.width;
-    viewport.height = (float) swapChainExtent.height;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-
-    VkRect2D scissor;
-    VkOffset2D offset = {0, 0};
-    scissor.offset = offset;
-    scissor.extent = swapChainExtent;
-
-    VkPipelineViewportStateCreateInfo viewportState{};
-    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.pViewports = &viewport;
-    viewportState.scissorCount = 1;
-    viewportState.pScissors = &scissor;
-    viewportState.pNext = VK_NULL_HANDLE;
-
-    VkPipelineRasterizationStateCreateInfo rasterizer{};
-    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-    rasterizer.depthBiasEnable = VK_FALSE;
-    rasterizer.depthBiasConstantFactor = 0.0f;
-    rasterizer.depthBiasClamp = 0.0f;
-    rasterizer.depthBiasSlopeFactor = 0.0f;
-    rasterizer.pNext = VK_NULL_HANDLE;
-
-    VkPipelineMultisampleStateCreateInfo multisampling{};
-    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    multisampling.minSampleShading = 1.0f;
-    multisampling.pSampleMask = nullptr;
-    multisampling.alphaToCoverageEnable = VK_FALSE;
-    multisampling.alphaToOneEnable = VK_FALSE;
-    multisampling.pNext = VK_NULL_HANDLE;
-
-    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_TRUE;
-    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-    VkPipelineColorBlendStateCreateInfo colorBlending{};
-    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable = VK_FALSE;
-    colorBlending.logicOp = VK_LOGIC_OP_COPY;
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
-    colorBlending.blendConstants[0] = 0.0f;
-    colorBlending.blendConstants[1] = 0.0f;
-    colorBlending.blendConstants[2] = 0.0f;
-    colorBlending.blendConstants[3] = 0.0f;
-    colorBlending.pNext = VK_NULL_HANDLE;
-
-    VkPipelineDepthStencilStateCreateInfo depthStencil{};
-    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable = VK_TRUE;
-    depthStencil.depthWriteEnable = VK_TRUE;
-    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-    depthStencil.depthBoundsTestEnable = VK_FALSE;
-    depthStencil.minDepthBounds = 0.0f; // Optional
-    depthStencil.maxDepthBounds = 1.0f; // Optional
-    depthStencil.stencilTestEnable = VK_FALSE;
-    depthStencil.front = {}; // Optional
-    depthStencil.back = {}; // Optional
-
-    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
-    pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.setLayoutCount = 1;
-    pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-    pipelineLayoutCreateInfo.pNext = VK_NULL_HANDLE;
-    pipelineLayoutCreateInfo.pPushConstantRanges = VK_NULL_HANDLE;
-    pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-    pipelineLayoutCreateInfo.flags = 0;
-
-    if(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-        printf("failed to create pipeline layout!");
-    }
-
-    VkGraphicsPipelineCreateInfo pipelineInfo{};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages;
-
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pDepthStencilState = &depthStencil;
-    pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = nullptr; // Optional
-
-    pipelineInfo.layout = pipelineLayout;
-
-    pipelineInfo.renderPass = renderPass;
-    pipelineInfo.subpass = 0;
-
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineInfo.basePipelineIndex = -1;
-    pipelineInfo.pNext = VK_NULL_HANDLE;
-    pipelineInfo.flags = 0;
-
-    VkResult res = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
+    VkResult res = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &renderPipelines[0]->pipelineInfo, nullptr, graphicsPipelines.data());
     if(res != VK_SUCCESS) {
-
-        printf("failed to create graphics pipeline!");
+        printf("failed to create graphics pipelines!");
     }
-
-    vkDestroyShaderModule(device, fragShaderModule, nullptr);
-    vkDestroyShaderModule(device, vertShaderModule, nullptr);
-}
-//endregion
-
-//region Shader
-VkShaderModule StarVulkan::CreateShaderModule(const uint32_t *code, uint32_t codeSize) {
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = codeSize;
-    createInfo.pCode = code;
-    createInfo.pNext = VK_NULL_HANDLE;
-    createInfo.flags = 0;
-
-    VkShaderModule shaderModule;
-    if(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-        printf("failed to create shader module!");
-    }
-
-    return shaderModule;
 }
 //endregion
 
@@ -1313,55 +1155,6 @@ void StarVulkan::CreateTextureSampler() {
 }
 //endregion
 
-//region Model
-void StarVulkan::GetModel() {
-    ScopedClock c = ScopedClock();
-
-//    struct ModelObject o = ModelHelper::LoadModel("Resources/Meshes/viking_room.obj");
-//    ModelObject o{};
-    uint32_t elementCount = 25600000;
-    vertices.resize(elementCount*5);
-    indices.resize(elementCount*18);
-    auto a = sizeof(vertices[0])*elementCount*5;
-    auto b = sizeof(indices[0])*elementCount*18;
-    for(int i = 0; i<elementCount; i++) {
-        int vertexBaseIndex = i*5;
-        int indexBaseIndex = i*18;
-
-        vertices[vertexBaseIndex] = Vertex({i,i,0}, {0,0,0}, {0,0});
-        vertices[vertexBaseIndex+1] = Vertex({i+1,i,0}, {1,0,0}, {1,0});
-        vertices[vertexBaseIndex+2] = Vertex({i,i+1,0}, {0,1,0}, {0,1});
-        vertices[vertexBaseIndex+3] = Vertex({i+1,i+1,0}, {1,1,0}, {1,1});
-        vertices[vertexBaseIndex+4] = Vertex({(float) i+0.5f,(float) i+0.5f,1}, {1,0,0}, {1,0});
-
-        indices[indexBaseIndex] = (i*5)+2;
-        indices[indexBaseIndex+1] = (i*5);
-        indices[indexBaseIndex+2] = (i*5)+1;
-
-        indices[indexBaseIndex+3] = (i*5)+3;
-        indices[indexBaseIndex+4] = (i*5)+2;
-        indices[indexBaseIndex+5] = (i*5)+1;
-
-
-        indices[indexBaseIndex+6] = (i*5)+1;
-        indices[indexBaseIndex+7] = (i*5);
-        indices[indexBaseIndex+8] = (i*5)+4;
-
-        indices[indexBaseIndex+9] = (i*5);
-        indices[indexBaseIndex+10] = (i*5)+2;
-        indices[indexBaseIndex+11] = (i*5)+4;
-
-        indices[indexBaseIndex+12] = (i*5)+2;
-        indices[indexBaseIndex+13] = (i*5)+3;
-        indices[indexBaseIndex+14] = (i*5)+4;
-
-        indices[indexBaseIndex+15] = (i*5)+3;
-        indices[indexBaseIndex+16] = (i*5)+1;
-        indices[indexBaseIndex+17] = (i*5)+4;
-    }
-}
-//endregion
-
 //region VertexBuffer
 void StarVulkan::CreateVertexBuffer() {
     size_t bufferSize = sizeof(vertices[0]) * vertices.size();
@@ -1375,7 +1168,7 @@ void StarVulkan::CreateVertexBuffer() {
     memcpy(data, vertices.data(), bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
     CopyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
@@ -1387,7 +1180,6 @@ void StarVulkan::CreateVertexBuffer() {
 //region IndexBuffer
 void StarVulkan::CreateIndexBuffer() {
     size_t bufferSize = sizeof(indices[0]) * indices.size();
-
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
@@ -1430,6 +1222,20 @@ void StarVulkan::CreateUniformBuffers() {
     for (size_t i = 0; i < swapChainImages.size(); i++) {
         CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
     }
+
+
+    VkDeviceSize bufferSizeRes = sizeof(GeneralData);
+    CreateBuffer(bufferSizeRes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, generalDataBuffer, generalDataBufferMemory);
+
+    GeneralData generalData{};
+    int x, y;
+    void* data;
+    vkMapMemory(this->device, this->generalDataBufferMemory, 0, sizeof(GeneralData), 0, &data);
+    glfwGetWindowSize(this->window, &x, &y);
+    generalData.resolution.x = (float)x;
+    generalData.resolution.y = (float)y;
+    memcpy(data, &generalData.resolution, sizeof(generalData.resolution));
+    vkUnmapMemory(this->device, this->generalDataBufferMemory);
 }
 //endregion
 
@@ -1474,7 +1280,6 @@ void StarVulkan::RecreateSwapChain() {
     CreateSwapChainImages();
     CreateRenderPass();
     CreateGraphicsPipeline();
-//    CreateColorResources();
     CreateDepthResources();
     CreateFrameBuffers();
     CreateUniformBuffers();
@@ -1491,18 +1296,23 @@ void StarVulkan::CleanupSwapChain() {
     vkDestroyImage(device, depthImage, nullptr);
     vkFreeMemory(device, depthImageMemory, nullptr);
 
-//    vkDestroyImageView(device, colorImageView, nullptr);
-//    vkDestroyImage(device, colorImage, nullptr);
-//    vkFreeMemory(device, colorImageMemory, nullptr);
-
     for (auto framebuffer : swapChainFrameBuffers) {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
     }
 
     vkFreeCommandBuffers(device, mainCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+    for(auto graphicsPipeline : graphicsPipelines) {
+        vkDestroyPipeline(device, graphicsPipeline, nullptr);
+    }
+    for(auto renderPipeline : renderPipelines) {
+        vkDestroyPipelineLayout(device, renderPipeline->pipelineLayout, nullptr);
+    }
+    for(auto renderPipeline : renderPipelines) {
+        for(auto shaderObject : renderPipeline->shaderObjects) {
+            vkDestroyShaderModule(device, shaderObject->shaderModule, nullptr);
+        }
+    }
 
-    vkDestroyPipeline(device, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyRenderPass(device, renderPass, nullptr);
 
     for (auto imageView : swapChainImageViews) {
@@ -1515,6 +1325,9 @@ void StarVulkan::CleanupSwapChain() {
         vkDestroyBuffer(device, uniformBuffers[i], nullptr);
         vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
     }
+
+    vkDestroyBuffer(device, generalDataBuffer, nullptr);
+    vkFreeMemory(device, generalDataBufferMemory, nullptr);
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 }
@@ -1547,10 +1360,6 @@ void StarVulkan::Cleanup() {
     vkDestroyCommandPool(device, mainCommandPool, nullptr);
 
     vkDestroyDevice(device, nullptr);
-
-//    if (enableValidationLayers) {
-//        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-//    }
 
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);

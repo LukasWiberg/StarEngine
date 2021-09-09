@@ -3,15 +3,28 @@
 //
 
 #include <iostream>
+#include <utility>
 #include "ScopedClock.hpp"
+
+ScopedClock::ScopedClock(std::string name, bool fps) {
+    this->name = std::move(name);
+    this->fps = fps;
+    start = std::chrono::high_resolution_clock::now();
+}
 
 ScopedClock::ScopedClock() {
     start = std::chrono::high_resolution_clock::now();
 }
 
 ScopedClock::~ScopedClock() {
-    auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "Time: " << ((double)std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count())*0.000000001f << std::endl;
+    if(!name.empty()) {
+        auto end = std::chrono::high_resolution_clock::now();
+        auto delta = ((double)std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count())*0.000000001f;
+        if(fps) {
+            delta = 1.0f/delta;
+        }
+        std::cout << name << delta << std::endl;
+    }
 }
 
 void ScopedClock::Reset() {

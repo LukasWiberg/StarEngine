@@ -43,5 +43,3 @@ Vertex::Vertex(const glm::vec3 &pos, const glm::vec3 &color, const glm::vec2 &te
     this->color = color;
     this->texCoord = texCoord;
 }
-
-Vertex::Vertex() {}

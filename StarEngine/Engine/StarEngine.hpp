@@ -13,6 +13,7 @@
 #include "Input/Keyboard.hpp"
 #include "Input/Mouse.hpp"
 #include "Vulkan/StarVulkan.hpp"
+#include "Object/GameObject.hpp"
 
 class StarEngine {
 private:
@@ -23,17 +24,29 @@ private:
     Keyboard *keyboard;
     Mouse *mouse;
     uint32_t currentFrame = 0;
-    bool framebufferResized = false;
+    uint32_t iterator = 0;
+    double rotIterator = 0.0f;
 
     //Runtime
     void EngineLoop();
-    void DrawFrame();
+    void DrawFrame(double frameTime);
     void UpdateUniformBuffer(uint32_t currentImage);
+
+    VkCommandBuffer StartRenderCommand();
+    void EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex);
+
+    uint32_t gameObjectCount = 500;
+    std::vector<GameObject> gameObjects;
+
+    void GraphicsUpdate(double frameTime);
+    void LogicUpdate(double frameTime);
+
 public:
     static StarEngine *GetInstance();
     void StartEngine();
 
     Camera *camera;
+    bool framebufferResized = false;
 };
 
 

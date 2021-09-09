@@ -49,3 +49,10 @@ ModelObject ModelHelper::LoadModel(const std::string& modelPath) {
     ret.indices = indexBuffer;
     return ret;
 }
+
+ModelObject ModelHelper::CopyModel(ModelObject &model) {
+    ModelObject ret{};
+    ret.vertices = model.vertices;
+    ret.indices = model.indices;
+    return ret;
+}

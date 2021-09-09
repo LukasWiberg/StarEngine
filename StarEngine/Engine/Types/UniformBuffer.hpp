@@ -14,5 +14,13 @@ struct UniformBufferObject {
     alignas(16) glm::mat4 proj;
 };
 
+struct PushConstantData {
+    alignas(16) glm::mat4 transform;
+};
+
+struct GeneralData {
+    alignas(16) glm::vec2 resolution;
+};
+
 
 #endif //STARENGINE_UNIFORMBUFFER_HPP

@@ -4,10 +4,8 @@
 
 #include <iostream>
 #include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include "StarEngine.hpp"
-#include "Input/Keyboard.hpp"
-#include "Input/Mouse.hpp"
 #include "Constants.hpp"
 #include "General/ScopedClock.hpp"
 
@@ -19,7 +17,32 @@ StarEngine *StarEngine::GetInstance() {
 };
 
 StarEngine::StarEngine() {
+    srand((unsigned)time(nullptr));
     vulkan = new StarVulkan();
+    {
+        auto c = ScopedClock("GameObject creation time: ", false);
+        gameObjects.resize(gameObjectCount);
+
+        for(int i = 0; i<gameObjectCount; i++) {
+            if(i == 0) {
+                gameObjects[0] = GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f), ModelHelper::LoadModel("Resources/Meshes/b.obj"));
+            } else {
+                gameObjects[i] = GameObject(&gameObjects[0]);
+            }
+            uint32_t lastVertexIndex = this->vulkan->vertices.size();
+            this->vulkan->vertices.resize(lastVertexIndex+gameObjects[i].model.vertices.size());
+            for(int j = 0; j<gameObjects[i].model.vertices.size(); j++) {
+                this->vulkan->vertices[lastVertexIndex+j] = gameObjects[i].model.vertices[j];
+            }
+            uint32_t lastIndexIndex = this->vulkan->indices.size();
+            this->vulkan->indices.resize(lastIndexIndex+gameObjects[i].model.indices.size());
+            for(int j = 0; j<gameObjects[i].model.indices.size(); j++) {
+                this->vulkan->indices[lastIndexIndex+j] = lastVertexIndex+gameObjects[i].model.indices[j];
+            }
+        }
+    }
+
+    vulkan->Initialize();
 
     camera = new Camera(1.0f);
     //Not yet used
@@ -37,15 +60,34 @@ void StarEngine::StartEngine() {
 void StarEngine::EngineLoop() {
     ScopedClock c = ScopedClock();
     while(!glfwWindowShouldClose(vulkan->window)) {
+        ScopedClock d = ScopedClock("FPS: ", true);
         glfwPollEvents();
-        camera->UpdateCamera(c.GetElapsedSeconds());
+        auto frameTime = c.GetElapsedSeconds();
+
+        this->LogicUpdate(frameTime);
+        this->GraphicsUpdate(frameTime);
+
+        camera->UpdateCamera(frameTime);
         c.Reset();
-        DrawFrame();
+        DrawFrame(frameTime);
     }
     vulkan->Cleanup();
 }
 
-void StarEngine::DrawFrame() {
+void StarEngine::LogicUpdate(double frameTime) {
+    for(int i = 0; i<gameObjects.size(); i++) {
+        gameObjects[i].LogicUpdate(frameTime);
+    }
+}
+
+void StarEngine::GraphicsUpdate(double frameTime) {
+    for(int i = 0; i<gameObjects.size(); i++) {
+        gameObjects[i].GraphicsUpdate(frameTime);
+        gameObjects[i].UpdateTransform();
+    }
+}
+
+void StarEngine::DrawFrame(double frameTime) {
     vkWaitForFences(vulkan->device, 1, &vulkan->inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -65,7 +107,58 @@ void StarEngine::DrawFrame() {
     }
     vulkan->imagesInFlight[imageIndex] = vulkan->inFlightFences[currentFrame];
 
+    VkCommandBuffer cmdBuffer = StartRenderCommand();
 
+
+    VkBuffer vertexBuffers[] = {this->vulkan->vertexBuffer};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
+
+    vkCmdBindIndexBuffer(cmdBuffer, this->vulkan->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->renderPipelines[0]->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
+
+    int32_t vertexOffset = 0;
+    for(auto & gameObject : gameObjects) {
+        PushConstantData constants{};
+        constants.transform = gameObject.transform;
+        vkCmdPushConstants(cmdBuffer, this->vulkan->renderPipelines[0]->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData), &constants);
+        vkCmdDrawIndexed(cmdBuffer, gameObject.model.indices.size(), 1, 0, vertexOffset, 0);
+        vertexOffset += (int32_t) gameObject.model.vertices.size();
+    }
+
+
+    EndRenderCommand(cmdBuffer, imageIndex);
+    rotIterator+=frameTime;
+
+    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+VkCommandBuffer StarEngine::StartRenderCommand() {
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = this->vulkan->renderPass;
+    renderPassInfo.framebuffer = this->vulkan->swapChainFrameBuffers[currentFrame];
+    VkOffset2D offset = {0, 0};
+    renderPassInfo.renderArea.offset = offset;
+    renderPassInfo.renderArea.extent = this->vulkan->swapChainExtent;
+
+    VkClearValue clearValues[2];
+    VkClearColorValue clearColor = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    VkClearDepthStencilValue clearDepthStencil = {1.0f, 0};
+    clearValues[0].color = clearColor;
+    clearValues[1].depthStencil = clearDepthStencil;
+
+    renderPassInfo.clearValueCount = 2;
+    renderPassInfo.pClearValues = clearValues;
+
+    VkCommandBuffer cmdBuffer = this->vulkan->BeginSingleTimeCommands(this->vulkan->mainCommandPool);
+    vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->graphicsPipelines[0]);
+    return cmdBuffer;
+}
+
+void StarEngine::EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex) {
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -78,6 +171,9 @@ void StarEngine::DrawFrame() {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &vulkan->commandBuffers[imageIndex];
 
+    vkCmdEndRenderPass(cmdBuffer);
+    this->vulkan->EndSingleTimeCommands(cmdBuffer, this->vulkan->mainCommandPool, this->vulkan->graphicsQueue);
+
     VkSemaphore signalSemaphores[] = {vulkan->renderFinishedSemaphores[currentFrame]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
@@ -85,7 +181,7 @@ void StarEngine::DrawFrame() {
     vkResetFences(vulkan->device, 1, &vulkan->inFlightFences[currentFrame]);
 
     if(vkQueueSubmit(vulkan->graphicsQueue, 1, &submitInfo, vulkan->inFlightFences[currentFrame]) != VK_SUCCESS) {
-        printf("failed to submit draw command buffer!");
+        printf("Failed to submit draw command buffer!");
     }
 
     VkPresentInfoKHR presentInfo{};
@@ -100,16 +196,14 @@ void StarEngine::DrawFrame() {
     presentInfo.pImageIndices = &imageIndex;
 
     presentInfo.pResults = nullptr;
-    result = vkQueuePresentKHR(vulkan->presentQueue, &presentInfo);
+    VkResult result = vkQueuePresentKHR(vulkan->presentQueue, &presentInfo);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
         framebufferResized = false;
         vulkan->RecreateSwapChain();
     } else if (result != VK_SUCCESS) {
-        std::cout << "failed to present swap chain image!" << std::endl;
+        std::cout << "Failed to present swap chain image!" << std::endl;
     }
-
-    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 
@@ -119,9 +213,8 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
+
     UniformBufferObject ubo{};
-//    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-//    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.proj = glm::perspective(glm::radians(90.0f), (float) vulkan->swapChainExtent.width / (float) vulkan->swapChainExtent.height, 0.1f, 1000.0f);
     ubo.model = glm::mat4(1.0f);
     ubo.view = camera->view;
