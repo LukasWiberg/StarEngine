@@ -13,6 +13,6 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
     outColor = texture(texSampler, fragTexCoord);
-    outColor *= vec4(fragColor, 1.0);
-    outColor *= ((floor(gl_FragCoord.x/10)*10)/generalData.resolution.x)/2+((floor(gl_FragCoord.y/10)*10)/generalData.resolution.y)/2;
+//    outColor *= vec4(fragColor, 1.0);
+//    outColor *= ((floor(gl_FragCoord.x/10)*10)/generalData.resolution.x)/2+((floor(gl_FragCoord.y/10)*10)/generalData.resolution.y)/2;
 }

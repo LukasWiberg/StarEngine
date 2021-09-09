@@ -31,7 +31,6 @@ private:
     void EngineLoop();
     void DrawFrame(double frameTime);
     void UpdateUniformBuffer(uint32_t currentImage);
-    void UpdateVertexBuffer();
 
     VkCommandBuffer StartRenderCommand();
     void EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex);

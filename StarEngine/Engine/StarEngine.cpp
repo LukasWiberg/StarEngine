@@ -5,8 +5,6 @@
 #include <iostream>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/euler_angles.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
 #include "StarEngine.hpp"
 #include "Constants.hpp"
 #include "General/ScopedClock.hpp"
@@ -30,7 +28,6 @@ StarEngine::StarEngine() {
                 gameObjects[0] = GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f), ModelHelper::LoadModel("Resources/Meshes/b.obj"));
             } else {
                 gameObjects[i] = GameObject(&gameObjects[0]);
-//                gameObjects[i] = GameObject(glm::vec3(0,0,0), glm::vec3(0,0,0), ModelHelper::LoadModel("Resources/Meshes/a.obj"));
             }
             uint32_t lastVertexIndex = this->vulkan->vertices.size();
             this->vulkan->vertices.resize(lastVertexIndex+gameObjects[i].model.vertices.size());
@@ -72,7 +69,6 @@ void StarEngine::EngineLoop() {
 
         camera->UpdateCamera(frameTime);
         c.Reset();
-//        UpdateVertexBuffer();
         DrawFrame(frameTime);
     }
     vulkan->Cleanup();
@@ -87,6 +83,7 @@ void StarEngine::LogicUpdate(double frameTime) {
 void StarEngine::GraphicsUpdate(double frameTime) {
     for(int i = 0; i<gameObjects.size(); i++) {
         gameObjects[i].GraphicsUpdate(frameTime);
+        gameObjects[i].UpdateTransform();
     }
 }
 
@@ -125,7 +122,6 @@ void StarEngine::DrawFrame(double frameTime) {
     for(auto & gameObject : gameObjects) {
         PushConstantData constants{};
         constants.transform = gameObject.transform;
-//        constants.transform = glm::mat4(1.0f);
         vkCmdPushConstants(cmdBuffer, this->vulkan->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData), &constants);
         vkCmdDrawIndexed(cmdBuffer, gameObject.model.indices.size(), 1, 0, vertexOffset, 0);
         vertexOffset += (int32_t) gameObject.model.vertices.size();
@@ -219,8 +215,6 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
 
 
     UniformBufferObject ubo{};
-//    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-//    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.proj = glm::perspective(glm::radians(90.0f), (float) vulkan->swapChainExtent.width / (float) vulkan->swapChainExtent.height, 0.1f, 1000.0f);
     ubo.model = glm::mat4(1.0f);
     ubo.view = camera->view;
@@ -233,16 +227,3 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
     memcpy(data, &ubo, sizeof(ubo));
     vkUnmapMemory(vulkan->device, vulkan->uniformBuffersMemory[currentImage]);
 }
-
-//void StarEngine::UpdateVertexBuffer() {
-//    for(Vertex &vert : vulkan->vertices) {
-//        vert.pos = vert.pos + glm::vec3((((float)rand()/RAND_MAX)-0.5f)*0.01f, (((float)rand()/RAND_MAX)-0.5f)*0.01f, (((float)rand()/RAND_MAX)-0.5f)*0.01f);
-//    }
-//
-//    vkDeviceWaitIdle(vulkan->device);
-//
-//    void* data;
-//    vkMapMemory(vulkan->device, vulkan->vertexBufferMemory, 0, sizeof(vulkan->vertices[0])*vulkan->vertices.size(), 0, &data);
-//    memcpy(data, vulkan->vertices.data(), sizeof(vulkan->vertices[0])*vulkan->vertices.size());
-//    vkUnmapMemory(vulkan->device, vulkan->vertexBufferMemory);
-//}

@@ -14,8 +14,6 @@
 #include <stb_image.h>
 #include "StarVulkan.hpp"
 #include "../Constants.hpp"
-#include "../General/FileHelper.hpp"
-#include "../General/ScopedClock.hpp"
 #include "../StarEngine.hpp"
 #include "../Shaders/ShaderObject.hpp"
 
@@ -42,7 +40,6 @@ void StarVulkan::Initialize() {
 
 
     CreateTextureSampler();
-    //    GetModel();
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateUniformBuffers();
@@ -830,9 +827,6 @@ void StarVulkan::CreateCommandBuffers() {
         renderPassInfo.clearValueCount = 2;
         renderPassInfo.pClearValues = clearValues;
 
-//        vkCmdBeginRenderPass((commandBuffers)[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-//        vkCmdBindPipeline((commandBuffers)[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-
         VkBuffer vertexBuffers[] = {vertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers((commandBuffers)[i], 0, 1, vertexBuffers, offsets);
@@ -841,14 +835,6 @@ void StarVulkan::CreateCommandBuffers() {
 
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-//        PushConstantData push{};
-//        push.transform = glm::mat4(-5.0f);
-
-//        vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData), &push);
-
-//        vkCmdDrawIndexed(commandBuffers[i], indices.size(), 1, 0, 0, 0);
-
-//        vkCmdEndRenderPass(commandBuffers[i]);
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
@@ -1345,50 +1331,6 @@ void StarVulkan::CreateTextureSampler() {
 }
 //endregion
 
-//region Model
-//void StarVulkan::GetModel() {
-////    struct ModelObject o = ModelHelper::LoadModel("Resources/Meshes/viking_room.obj");
-////    ModelObject o{};
-//    vertices.resize(elementCount*5);
-//    indices.resize(elementCount*18);
-//    for(int i = 0; i<elementCount; i++) {
-//        int vertexBaseIndex = i*5;
-//        int indexBaseIndex = i*18;
-//
-//        vertices[vertexBaseIndex] = Vertex({i,i,0}, {0,0,0}, {0,0});
-//        vertices[vertexBaseIndex+1] = Vertex({i+1,i,0}, {1,0,0}, {1,0});
-//        vertices[vertexBaseIndex+2] = Vertex({i,i+1,0}, {0,1,0}, {0,1});
-//        vertices[vertexBaseIndex+3] = Vertex({i+1,i+1,0}, {1,1,0}, {1,1});
-//        vertices[vertexBaseIndex+4] = Vertex({(float) i+0.5f,(float) i+0.5f,1}, {1,0,0}, {1,0});
-//
-//        indices[indexBaseIndex] = (i*5)+2;
-//        indices[indexBaseIndex+1] = (i*5);
-//        indices[indexBaseIndex+2] = (i*5)+1;
-//
-//        indices[indexBaseIndex+3] = (i*5)+3;
-//        indices[indexBaseIndex+4] = (i*5)+2;
-//        indices[indexBaseIndex+5] = (i*5)+1;
-//
-//
-//        indices[indexBaseIndex+6] = (i*5)+1;
-//        indices[indexBaseIndex+7] = (i*5);
-//        indices[indexBaseIndex+8] = (i*5)+4;
-//
-//        indices[indexBaseIndex+9] = (i*5);
-//        indices[indexBaseIndex+10] = (i*5)+2;
-//        indices[indexBaseIndex+11] = (i*5)+4;
-//
-//        indices[indexBaseIndex+12] = (i*5)+2;
-//        indices[indexBaseIndex+13] = (i*5)+3;
-//        indices[indexBaseIndex+14] = (i*5)+4;
-//
-//        indices[indexBaseIndex+15] = (i*5)+3;
-//        indices[indexBaseIndex+16] = (i*5)+1;
-//        indices[indexBaseIndex+17] = (i*5)+4;
-//    }
-//}
-//endregion
-
 //region VertexBuffer
 void StarVulkan::CreateVertexBuffer() {
     size_t bufferSize = sizeof(vertices[0]) * vertices.size();
@@ -1514,7 +1456,6 @@ void StarVulkan::RecreateSwapChain() {
     CreateSwapChainImages();
     CreateRenderPass();
     CreateGraphicsPipeline();
-//    CreateColorResources();
     CreateDepthResources();
     CreateFrameBuffers();
     CreateUniformBuffers();
@@ -1530,10 +1471,6 @@ void StarVulkan::CleanupSwapChain() {
     vkDestroyImageView(device, depthImageView, nullptr);
     vkDestroyImage(device, depthImage, nullptr);
     vkFreeMemory(device, depthImageMemory, nullptr);
-
-//    vkDestroyImageView(device, colorImageView, nullptr);
-//    vkDestroyImage(device, colorImage, nullptr);
-//    vkFreeMemory(device, colorImageMemory, nullptr);
 
     for (auto framebuffer : swapChainFrameBuffers) {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
@@ -1590,10 +1527,6 @@ void StarVulkan::Cleanup() {
     vkDestroyCommandPool(device, mainCommandPool, nullptr);
 
     vkDestroyDevice(device, nullptr);
-
-//    if (enableValidationLayers) {
-//        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-//    }
 
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
