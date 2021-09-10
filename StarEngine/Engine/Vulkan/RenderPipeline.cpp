@@ -8,10 +8,14 @@
 #include "../Types/Vertex.hpp"
 #include "../Types/UniformBuffer.hpp"
 
-RenderPipeline::RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass) {
+RenderPipeline::RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, int config) {
     auto c = ScopedClock("Time for CreateGraphicsPipeline: ", false);
     shaderObjects.push_back(new ShaderObject("Resources/Shaders/a-vert.spv", device));
-    shaderObjects.push_back(new ShaderObject("Resources/Shaders/a-frag.spv", device));
+    if(config == 1) {
+        shaderObjects.push_back(new ShaderObject("Resources/Shaders/a-frag.spv", device));
+    } else {
+        shaderObjects.push_back(new ShaderObject("Resources/Shaders/b-frag.spv", device));
+    }
     auto d = ScopedClock("Time for CreateGraphicsPipeline without load shaders: ", false);
 
     shaderStages.resize(2);

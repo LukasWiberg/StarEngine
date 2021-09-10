@@ -22,22 +22,24 @@ StarEngine::StarEngine() {
     {
         auto c = ScopedClock("GameObject creation time: ", false);
         gameObjects.resize(gameObjectCount);
-
+        this->vulkan->verticesList.resize(1);
+        this->vulkan->indicesList.resize(1);
         for(int i = 0; i<gameObjectCount; i++) {
             if(i == 0) {
                 gameObjects[0] = GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f), ModelHelper::LoadModel("Resources/Meshes/b.obj"));
             } else {
                 gameObjects[i] = GameObject(&gameObjects[0]);
+                gameObjects[i].position = glm::vec3(dist(randGen),dist(randGen),dist(randGen));
             }
-            uint32_t lastVertexIndex = this->vulkan->vertices.size();
-            this->vulkan->vertices.resize(lastVertexIndex+gameObjects[i].model.vertices.size());
+            uint32_t lastVertexIndex = this->vulkan->verticesList[0].size();
+            this->vulkan->verticesList[0].resize(lastVertexIndex + gameObjects[i].model.vertices.size());
             for(int j = 0; j<gameObjects[i].model.vertices.size(); j++) {
-                this->vulkan->vertices[lastVertexIndex+j] = gameObjects[i].model.vertices[j];
+                this->vulkan->verticesList[0][lastVertexIndex + j] = gameObjects[i].model.vertices[j];
             }
-            uint32_t lastIndexIndex = this->vulkan->indices.size();
-            this->vulkan->indices.resize(lastIndexIndex+gameObjects[i].model.indices.size());
+            uint32_t lastIndexIndex = this->vulkan->indicesList[0].size();
+            this->vulkan->indicesList[0].resize(lastIndexIndex + gameObjects[i].model.indices.size());
             for(int j = 0; j<gameObjects[i].model.indices.size(); j++) {
-                this->vulkan->indices[lastIndexIndex+j] = lastVertexIndex+gameObjects[i].model.indices[j];
+                this->vulkan->indicesList[0][lastIndexIndex + j] = lastVertexIndex + gameObjects[i].model.indices[j];
             }
         }
     }
@@ -60,7 +62,7 @@ void StarEngine::StartEngine() {
 void StarEngine::EngineLoop() {
     ScopedClock c = ScopedClock();
     while(!glfwWindowShouldClose(vulkan->window)) {
-        ScopedClock d = ScopedClock("FPS: ", true);
+//        ScopedClock d = ScopedClock("FPS: ", true);
         glfwPollEvents();
         auto frameTime = c.GetElapsedSeconds();
 
@@ -96,9 +98,12 @@ void StarEngine::DrawFrame(double frameTime) {
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         vulkan->RecreateSwapChain();
         return;
-    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-        printf("failed to acquire swap chain image!");
+    } else if (result != VK_SUCCESS) {
+        if(result != VK_SUBOPTIMAL_KHR) {
+            printf("failed to acquire swap chain image!");
+        }
     }
+
 
     UpdateUniformBuffer(imageIndex);
 
@@ -107,19 +112,22 @@ void StarEngine::DrawFrame(double frameTime) {
     }
     vulkan->imagesInFlight[imageIndex] = vulkan->inFlightFences[currentFrame];
 
-    VkCommandBuffer cmdBuffer = StartRenderCommand();
+    VkCommandBuffer cmdBuffer = this->vulkan->BeginSingleTimeCommands(this->vulkan->mainCommandPool);
+    StartRenderPass(cmdBuffer);
+    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->graphicsPipelines[0]);
 
 
-    VkBuffer vertexBuffers[] = {this->vulkan->vertexBuffer};
     VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
+    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &this->vulkan->vertexBuffers[0], offsets);
 
-    vkCmdBindIndexBuffer(cmdBuffer, this->vulkan->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(cmdBuffer, this->vulkan->indexBuffers[0], 0, VK_INDEX_TYPE_UINT32);
 
-    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->renderPipelines[0]->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->renderPipelines[1]->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
 
     int32_t vertexOffset = 0;
-    for(auto & gameObject : gameObjects) {
+    for(int i = 0; i<(int)std::floor(gameObjects.size()/2); i++) {
+        auto gameObject = gameObjects[i];
+
         PushConstantData constants{};
         constants.transform = gameObject.transform;
         vkCmdPushConstants(cmdBuffer, this->vulkan->renderPipelines[0]->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData), &constants);
@@ -128,13 +136,26 @@ void StarEngine::DrawFrame(double frameTime) {
     }
 
 
+    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->graphicsPipelines[1]);
+
+    for(int i = (int)std::floor(gameObjects.size()/2); i<gameObjects.size(); i++) {
+        auto gameObject = gameObjects[i];
+        PushConstantData constants{};
+        constants.transform = gameObject.transform;
+        vkCmdPushConstants(cmdBuffer, this->vulkan->renderPipelines[1]->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData), &constants);
+        vkCmdDrawIndexed(cmdBuffer, gameObject.model.indices.size(), 1, 0, vertexOffset, 0);
+        vertexOffset += (int32_t) gameObject.model.vertices.size();
+    }
+    vkCmdEndRenderPass(cmdBuffer);
+
+
+
     EndRenderCommand(cmdBuffer, imageIndex);
     rotIterator+=frameTime;
-
-    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    this->currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-VkCommandBuffer StarEngine::StartRenderCommand() {
+VkCommandBuffer StarEngine::StartRenderPass(VkCommandBuffer cmdBuffer) {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = this->vulkan->renderPass;
@@ -152,9 +173,7 @@ VkCommandBuffer StarEngine::StartRenderCommand() {
     renderPassInfo.clearValueCount = 2;
     renderPassInfo.pClearValues = clearValues;
 
-    VkCommandBuffer cmdBuffer = this->vulkan->BeginSingleTimeCommands(this->vulkan->mainCommandPool);
     vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->graphicsPipelines[0]);
     return cmdBuffer;
 }
 
@@ -171,7 +190,6 @@ void StarEngine::EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &vulkan->commandBuffers[imageIndex];
 
-    vkCmdEndRenderPass(cmdBuffer);
     this->vulkan->EndSingleTimeCommands(cmdBuffer, this->vulkan->mainCommandPool, this->vulkan->graphicsQueue);
 
     VkSemaphore signalSemaphores[] = {vulkan->renderFinishedSemaphores[currentFrame]};
