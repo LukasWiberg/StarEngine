@@ -15,9 +15,7 @@
 #include "StarVulkan.hpp"
 #include "../Constants.hpp"
 #include "../StarEngine.hpp"
-#include "../Shaders/ShaderObject.hpp"
-#include "../General/ScopedClock.hpp"
-#include "RenderPipeline.hpp"
+#include "RenderPipelineSingleton.hpp"
 
 StarVulkan::StarVulkan() {
 }
@@ -1078,9 +1076,11 @@ void StarVulkan::CreateRenderPass() {
 
 //region GraphicsPipeline
 void StarVulkan::CreateGraphicsPipeline() {
-    renderPipelines.push_back(new RenderPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, 1));
-    renderPipelines.push_back(new RenderPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, 2));
+    renderPipelines.push_back(new RenderPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv"));
+    renderPipelines.push_back(new RenderPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/b-frag.spv"));
     graphicsPipelines.resize(renderPipelines.size());
+    RenderPipelineSingleton::AddPipeline(device, swapChainExtent, descriptorSetLayout, renderPass);
+    RenderPipelineSingleton::AddPipeline(device, swapChainExtent, descriptorSetLayout, renderPass);
 
     std::vector<VkGraphicsPipelineCreateInfo> createInfos;
     for(auto renderPipeline : renderPipelines) {
@@ -1331,9 +1331,7 @@ void StarVulkan::CleanupSwapChain() {
         vkDestroyPipelineLayout(device, renderPipeline->pipelineLayout, nullptr);
     }
     for(auto renderPipeline : renderPipelines) {
-        for(auto shaderObject : renderPipeline->shaderObjects) {
-            vkDestroyShaderModule(device, shaderObject->shaderModule, nullptr);
-        }
+        delete(renderPipeline);
     }
 
     vkDestroyRenderPass(device, renderPass, nullptr);

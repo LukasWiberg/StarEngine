@@ -39,8 +39,8 @@ private:
     VkCommandBuffer StartRenderPass(VkCommandBuffer cmdBuffer);
     void EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex);
 
-    uint32_t gameObjectCount = 15;
-    std::vector<GameObject> gameObjects;
+    uint32_t gameObjectCount = 2048;
+    std::vector<GameObject*> gameObjects;
 
     void GraphicsUpdate(double frameTime);
     void LogicUpdate(double frameTime);

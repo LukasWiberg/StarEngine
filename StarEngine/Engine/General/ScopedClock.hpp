@@ -11,10 +11,11 @@
 class ScopedClock {
 private:
     bool fps = false;
+    bool nano = false;
     std::string name;
     std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> start;
 public:
-    explicit ScopedClock(std::string name, bool fps);
+    explicit ScopedClock(std::string name, bool fps, bool nano = false);
     ScopedClock();
 
     virtual ~ScopedClock();

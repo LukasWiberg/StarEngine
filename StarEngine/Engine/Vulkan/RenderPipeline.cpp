@@ -8,14 +8,13 @@
 #include "../Types/Vertex.hpp"
 #include "../Types/UniformBuffer.hpp"
 
-RenderPipeline::RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, int config) {
+RenderPipeline::RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, const char *vertPath, const char *fragPath) {
     auto c = ScopedClock("Time for CreateGraphicsPipeline: ", false);
-    shaderObjects.push_back(new ShaderObject("Resources/Shaders/a-vert.spv", device));
-    if(config == 1) {
-        shaderObjects.push_back(new ShaderObject("Resources/Shaders/a-frag.spv", device));
-    } else {
-        shaderObjects.push_back(new ShaderObject("Resources/Shaders/b-frag.spv", device));
-    }
+    this->device = device;
+    shaderObjects.push_back(new ShaderObject(vertPath, device));
+    shaderObjects.push_back(new ShaderObject(fragPath, device));
+
+
     auto d = ScopedClock("Time for CreateGraphicsPipeline without load shaders: ", false);
 
     shaderStages.resize(2);
@@ -158,4 +157,10 @@ RenderPipeline::RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDe
     pipelineInfo.basePipelineIndex = -1;
     pipelineInfo.pNext = VK_NULL_HANDLE;
     pipelineInfo.flags = 0;
+}
+
+RenderPipeline::~RenderPipeline() {
+    for(auto shaderObject : shaderObjects) {
+        vkDestroyShaderModule(device, shaderObject->shaderModule, nullptr);
+    }
 }

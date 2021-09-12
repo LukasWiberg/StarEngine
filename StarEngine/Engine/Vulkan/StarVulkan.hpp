@@ -5,6 +5,8 @@
 #ifndef STARENGINE_STARVULKAN_HPP
 #define STARENGINE_STARVULKAN_HPP
 
+#include <GLFW/glfw3.h>
+#include <optional>
 #include <vulkan/vulkan.h>
 #include "../Types/Vertex.hpp"
 #include "../Types/UniformBuffer.hpp"
