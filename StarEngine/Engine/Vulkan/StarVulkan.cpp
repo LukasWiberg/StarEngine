@@ -1076,11 +1076,10 @@ void StarVulkan::CreateRenderPass() {
 
 //region GraphicsPipeline
 void StarVulkan::CreateGraphicsPipeline() {
-    renderPipelines.push_back(new RenderPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv"));
-    renderPipelines.push_back(new RenderPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/b-frag.spv"));
+    RenderPipelineSingleton::AddPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv");
+    RenderPipelineSingleton::AddPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/b-frag.spv");
+    renderPipelines = RenderPipelineSingleton::GetRenderPipelines();
     graphicsPipelines.resize(renderPipelines.size());
-    RenderPipelineSingleton::AddPipeline(device, swapChainExtent, descriptorSetLayout, renderPass);
-    RenderPipelineSingleton::AddPipeline(device, swapChainExtent, descriptorSetLayout, renderPass);
 
     std::vector<VkGraphicsPipelineCreateInfo> createInfos;
     for(auto renderPipeline : renderPipelines) {

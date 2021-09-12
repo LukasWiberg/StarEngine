@@ -15,18 +15,20 @@ private:
 
     static RenderPipelineSingleton *instance;
     std::vector<RenderPipeline*> renderPipelines;
-//    std::vector<ShaderObject*> shaders;
+    std::vector<VkPipeline> graphicsPipelines;
     Dictionary<std::string, ShaderObject*> *shaders;
 
     StarVulkan *vulkan = nullptr;
-
+    virtual ~RenderPipelineSingleton();
 public:
     static RenderPipelineSingleton *getInstance();
     RenderPipelineSingleton(RenderPipelineSingleton &other) = delete;
     void operator=(const RenderPipelineSingleton &) = delete;
-    static void AddPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass);
+    static RenderPipeline *AddPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, const char *vertPath, const char *fragPath);
+    static std::vector<RenderPipeline*> GetRenderPipelines();
 
     static void Initialize(StarVulkan *vulkan);
+    static void Destroy();
 };
 
 

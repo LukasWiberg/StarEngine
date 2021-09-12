@@ -4,31 +4,24 @@
 
 #include <array>
 #include "RenderPipeline.hpp"
-#include "../General/ScopedClock.hpp"
 #include "../Types/Vertex.hpp"
 #include "../Types/UniformBuffer.hpp"
 
-RenderPipeline::RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, const char *vertPath, const char *fragPath) {
-    auto c = ScopedClock("Time for CreateGraphicsPipeline: ", false);
+RenderPipeline::RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, ShaderObject *vertShader, ShaderObject *fragShader) {
     this->device = device;
-    shaderObjects.push_back(new ShaderObject(vertPath, device));
-    shaderObjects.push_back(new ShaderObject(fragPath, device));
-
-
-    auto d = ScopedClock("Time for CreateGraphicsPipeline without load shaders: ", false);
 
     shaderStages.resize(2);
 
     shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-    shaderStages[0].module = shaderObjects[0]->shaderModule;
+    shaderStages[0].module = vertShader->shaderModule;
     shaderStages[0].pName = "main";
     shaderStages[0].pNext = VK_NULL_HANDLE;
     shaderStages[0].flags = 0;
 
     shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    shaderStages[1].module = shaderObjects[1]->shaderModule;
+    shaderStages[1].module = fragShader->shaderModule;
     shaderStages[1].pName = "main";
     shaderStages[1].pNext = VK_NULL_HANDLE;
     shaderStages[1].flags = 0;
@@ -157,10 +150,4 @@ RenderPipeline::RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDe
     pipelineInfo.basePipelineIndex = -1;
     pipelineInfo.pNext = VK_NULL_HANDLE;
     pipelineInfo.flags = 0;
-}
-
-RenderPipeline::~RenderPipeline() {
-    for(auto shaderObject : shaderObjects) {
-        vkDestroyShaderModule(device, shaderObject->shaderModule, nullptr);
-    }
 }

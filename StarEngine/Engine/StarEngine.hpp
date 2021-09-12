@@ -48,6 +48,7 @@ private:
 public:
     static StarEngine *GetInstance();
     void StartEngine();
+    virtual ~StarEngine();
 
     Camera *camera;
     bool framebufferResized = false;

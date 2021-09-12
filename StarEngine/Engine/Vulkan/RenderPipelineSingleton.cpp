@@ -11,22 +11,45 @@ RenderPipelineSingleton *RenderPipelineSingleton::getInstance() {
     return RenderPipelineSingleton::instance;
 }
 
-void RenderPipelineSingleton::AddPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass) {
-    RenderPipelineSingleton *pInstace = getInstance();
-    pInstace->shaders->Add("Resources/Shaders/a-vert.spv", new ShaderObject("Resources/Shaders/a-vert.spv", device));
-    pInstace->shaders->Add("Resources/Shaders/a-frag.spv", new ShaderObject("Resources/Shaders/a-frag.spv", device));
-    pInstace->shaders->Add("Resources/Shaders/b-frag.spv", new ShaderObject("Resources/Shaders/b-frag.spv", device));
-
-    pInstace->renderPipelines.push_back(new RenderPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv"));
-}
 
 void RenderPipelineSingleton::Initialize(StarVulkan *vulkan) {
     instance = new RenderPipelineSingleton();
     instance->vulkan = vulkan;
 }
 
+RenderPipeline *RenderPipelineSingleton::AddPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, const char *vertPath, const char *fragPath) {
+    auto vertShader = RenderPipelineSingleton::instance->shaders->Get(vertPath);
+    auto fragShader = RenderPipelineSingleton::instance->shaders->Get(fragPath);
+
+    if(vertShader == nullptr) {
+        vertShader = new ShaderObject(vertPath, device);
+        RenderPipelineSingleton::instance->shaders->Add(vertPath, vertShader);
+    }
+
+    if(fragShader == nullptr) {
+        fragShader = new ShaderObject(fragPath, device);
+        RenderPipelineSingleton::instance->shaders->Add(fragPath, fragShader);
+    }
+
+    RenderPipelineSingleton::instance->renderPipelines.push_back(new RenderPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, vertShader, fragShader));
+    return RenderPipelineSingleton::instance->renderPipelines[RenderPipelineSingleton::instance->renderPipelines.size()];
+}
+
+std::vector<RenderPipeline*> RenderPipelineSingleton::GetRenderPipelines() {
+    return RenderPipelineSingleton::instance->renderPipelines;
+}
+
 RenderPipelineSingleton::RenderPipelineSingleton() {
     shaders = new Dictionary<std::string, ShaderObject*>();
 };
+
+RenderPipelineSingleton::~RenderPipelineSingleton() {
+    shaders->Clear();
+}
+
+void RenderPipelineSingleton::Destroy() {
+    getInstance()->~RenderPipelineSingleton();
+}
+
+
 RenderPipelineSingleton* RenderPipelineSingleton::instance = nullptr;
-//Dictionary<std::string, ShaderObject*> *RenderPipelineSingleton::shaders = new Dictionary<std::string, ShaderObject*>();

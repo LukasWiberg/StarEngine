@@ -78,6 +78,7 @@ void StarEngine::EngineLoop() {
         DrawFrame(frameTime);
         iterator++;
     }
+    this->~StarEngine();
     vulkan->Cleanup();
 }
 
@@ -252,4 +253,8 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
     vkMapMemory(vulkan->device, vulkan->uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
     vkUnmapMemory(vulkan->device, vulkan->uniformBuffersMemory[currentImage]);
+}
+
+StarEngine::~StarEngine() {
+    RenderPipelineSingleton::Destroy();
 }

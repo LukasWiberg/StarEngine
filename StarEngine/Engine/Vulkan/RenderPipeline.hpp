@@ -17,7 +17,6 @@ private:
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
     VkVertexInputBindingDescription bindingDescription{};
     std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-    std::vector<ShaderObject*> shaderObjects{};
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     VkPipelineViewportStateCreateInfo viewportState{};
     VkViewport viewport{};
@@ -36,9 +35,7 @@ public:
     VkPipelineLayout pipelineLayout{};
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-    RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, const char *vertPath, const char *fragPath);
-
-    virtual ~RenderPipeline();
+    RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, ShaderObject *vertShader, ShaderObject *fragShader);
 };
 
 
