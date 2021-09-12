@@ -5,6 +5,8 @@
 #ifndef STARENGINE_STARVULKAN_HPP
 #define STARENGINE_STARVULKAN_HPP
 
+#include <GLFW/glfw3.h>
+#include <optional>
 #include <vulkan/vulkan.h>
 #include "../Types/Vertex.hpp"
 #include "../Types/UniformBuffer.hpp"
@@ -53,10 +55,6 @@ private:
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat{};
     std::vector<VkImageView> swapChainImageViews;
-    //endregion
-
-
-    VkDeviceMemory indexBufferMemory{};
     //endregion
 
     //region SwapChain
@@ -154,7 +152,7 @@ private:
     //endregion
 
     //region IndexBuffer
-    void CreateIndexBuffer();
+    void CreateIndexBuffers();
     //endregion
 
     //region Buffer
@@ -182,7 +180,6 @@ public:
     VkQueue graphicsQueue{}, presentQueue{};
     VkExtent2D swapChainExtent{};
     std::vector<VkDeviceMemory> uniformBuffersMemory;
-    VkDeviceMemory vertexBufferMemory{};
     VkDeviceMemory generalDataBufferMemory;
 
 
@@ -204,13 +201,13 @@ public:
     //endregion
 
     //region VertexBuffer
-    void CreateVertexBuffer();
+    void CreateVertexBuffers();
     //endregion
 
     //region VertexObjects
-    std::vector<Vertex> vertices;
+    std::vector<std::vector<Vertex>> verticesList;
     //endregion
-    std::vector<uint32_t> indices;
+    std::vector<std::vector<uint32_t>> indicesList;
 
     //region PipelineObjects
     std::vector<VkPipeline> graphicsPipelines;
@@ -229,8 +226,13 @@ public:
     VkRenderPass renderPass{};
     std::vector<VkFramebuffer> swapChainFrameBuffers;
     std::vector<VkDescriptorSet> descriptorSets;
-    VkBuffer vertexBuffer = VK_NULL_HANDLE;
-    VkBuffer indexBuffer = VK_NULL_HANDLE;
+
+    std::vector<VkBuffer> vertexBuffers;
+    std::vector<VkDeviceMemory> vertexBuffersMemory;
+
+    std::vector<VkBuffer> indexBuffers;
+    std::vector<VkDeviceMemory> indexBuffersMemory;
+
 
 
     //region GraphicsPipeline

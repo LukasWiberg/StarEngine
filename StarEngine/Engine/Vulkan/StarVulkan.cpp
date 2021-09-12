@@ -15,9 +15,7 @@
 #include "StarVulkan.hpp"
 #include "../Constants.hpp"
 #include "../StarEngine.hpp"
-#include "../Shaders/ShaderObject.hpp"
-#include "../General/ScopedClock.hpp"
-#include "RenderPipeline.hpp"
+#include "RenderPipelineSingleton.hpp"
 
 StarVulkan::StarVulkan() {
 }
@@ -42,8 +40,8 @@ void StarVulkan::Initialize() {
 
 
     CreateTextureSampler();
-    CreateVertexBuffer();
-    CreateIndexBuffer();
+    CreateVertexBuffers();
+    CreateIndexBuffers();
     CreateUniformBuffers();
     CreateDescriptorPool();
     CreateDescriptorSets();
@@ -829,11 +827,11 @@ void StarVulkan::CreateCommandBuffers() {
         renderPassInfo.clearValueCount = 2;
         renderPassInfo.pClearValues = clearValues;
 
-        VkBuffer vertexBuffers[] = {vertexBuffer};
+        VkBuffer vertexBuffersForBind[] = {vertexBuffers[0]};
         VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers((commandBuffers)[i], 0, 1, vertexBuffers, offsets);
+        vkCmdBindVertexBuffers((commandBuffers)[i], 0, 1, vertexBuffersForBind, offsets);
 
-        vkCmdBindIndexBuffer((commandBuffers)[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer((commandBuffers)[i], indexBuffers[0], 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, renderPipelines[0]->pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
@@ -1078,10 +1076,17 @@ void StarVulkan::CreateRenderPass() {
 
 //region GraphicsPipeline
 void StarVulkan::CreateGraphicsPipeline() {
-    renderPipelines.push_back(new RenderPipeline(device, swapChainExtent, descriptorSetLayout, renderPass));
-    graphicsPipelines.resize(1);
+    RenderPipelineSingleton::AddPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv");
+    RenderPipelineSingleton::AddPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/b-frag.spv");
+    renderPipelines = RenderPipelineSingleton::GetRenderPipelines();
+    graphicsPipelines.resize(renderPipelines.size());
 
-    VkResult res = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &renderPipelines[0]->pipelineInfo, nullptr, graphicsPipelines.data());
+    std::vector<VkGraphicsPipelineCreateInfo> createInfos;
+    for(auto renderPipeline : renderPipelines) {
+        createInfos.push_back(renderPipeline->pipelineInfo);
+    }
+
+    VkResult res = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, createInfos.size(), createInfos.data(), nullptr, graphicsPipelines.data());
     if(res != VK_SUCCESS) {
         printf("failed to create graphics pipelines!");
     }
@@ -1156,45 +1161,62 @@ void StarVulkan::CreateTextureSampler() {
 //endregion
 
 //region VertexBuffer
-void StarVulkan::CreateVertexBuffer() {
-    size_t bufferSize = sizeof(vertices[0]) * vertices.size();
+void StarVulkan::CreateVertexBuffers() {
+    vertexBuffers.resize(verticesList.size());
+    vertexBuffersMemory.resize(verticesList.size());
+    for(int i = 0; i<verticesList.size(); i++) {
+        auto vertices = verticesList[i];
+        size_t bufferSize = sizeof(vertices[0]) * vertices.size();
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
+                     stagingBufferMemory);
 
-    void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices.data(), bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+        void *data;
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, vertices.data(), bufferSize);
+        vkUnmapMemory(device, stagingBufferMemory);
 
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffers[i],
+                     vertexBuffersMemory[i]);
 
-    CopyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+        CopyBuffer(stagingBuffer, vertexBuffers[i], bufferSize);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+    }
 }
 //endregion
 
 //region IndexBuffer
-void StarVulkan::CreateIndexBuffer() {
-    size_t bufferSize = sizeof(indices[0]) * indices.size();
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+void StarVulkan::CreateIndexBuffers() {
+    indexBuffers.resize(indicesList.size());
+    indexBuffersMemory.resize(indicesList.size());
+    for(int i = 0; i<indicesList.size(); i++) {
+        auto indices = indicesList[i];
+        size_t bufferSize = sizeof(indices[0]) * indices.size();
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
+                     stagingBufferMemory);
 
-    void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices.data(), bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+        void *data;
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, indices.data(), bufferSize);
+        vkUnmapMemory(device, stagingBufferMemory);
 
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffers[i], indexBuffersMemory[i]);
 
-    CopyBuffer(stagingBuffer, indexBuffer, bufferSize);
+        CopyBuffer(stagingBuffer, indexBuffers[i], bufferSize);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+    }
 }
 //endregion
 
@@ -1308,9 +1330,7 @@ void StarVulkan::CleanupSwapChain() {
         vkDestroyPipelineLayout(device, renderPipeline->pipelineLayout, nullptr);
     }
     for(auto renderPipeline : renderPipelines) {
-        for(auto shaderObject : renderPipeline->shaderObjects) {
-            vkDestroyShaderModule(device, shaderObject->shaderModule, nullptr);
-        }
+        delete(renderPipeline);
     }
 
     vkDestroyRenderPass(device, renderPass, nullptr);
@@ -1345,11 +1365,15 @@ void StarVulkan::Cleanup() {
 
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-    vkDestroyBuffer(device, indexBuffer, nullptr);
-    vkFreeMemory(device, indexBufferMemory, nullptr);
+    for(int i = 0; i<indexBuffers.size(); i++) {
+        vkDestroyBuffer(device, indexBuffers[i], nullptr);
+        vkFreeMemory(device, indexBuffersMemory[i], nullptr);
+    }
 
-    vkDestroyBuffer(device, vertexBuffer, nullptr);
-    vkFreeMemory(device, vertexBufferMemory, nullptr);
+    for(int i = 0; i<vertexBuffers.size(); i++) {
+        vkDestroyBuffer(device, vertexBuffers[i], nullptr);
+        vkFreeMemory(device, vertexBuffersMemory[i], nullptr);
+    }
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);

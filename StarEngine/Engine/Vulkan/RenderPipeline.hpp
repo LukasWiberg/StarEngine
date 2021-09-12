@@ -8,18 +8,15 @@
 
 #include <vulkan/vulkan_core.h>
 #include <vector>
+#include <array>
 #include "../Shaders/ShaderObject.hpp"
 
 class RenderPipeline {
 private:
-
-
-public:
-    //Temp
+    VkDevice device;
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
-    VkVertexInputBindingDescription bindingDescription;
+    VkVertexInputBindingDescription bindingDescription{};
     std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-    std::vector<ShaderObject*> shaderObjects;
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     VkPipelineViewportStateCreateInfo viewportState{};
     VkViewport viewport{};
@@ -30,15 +27,15 @@ public:
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     VkPushConstantRange pushConstantRange{};
-    VkRect2D scissor;
+    VkRect2D scissor{};
     VkOffset2D offset = {0, 0};
 
 
-
+public:
     VkPipelineLayout pipelineLayout{};
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-    RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass);
+    RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, ShaderObject *vertShader, ShaderObject *fragShader);
 };
 
 

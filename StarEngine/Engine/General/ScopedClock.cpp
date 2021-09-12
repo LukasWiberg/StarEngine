@@ -6,9 +6,10 @@
 #include <utility>
 #include "ScopedClock.hpp"
 
-ScopedClock::ScopedClock(std::string name, bool fps) {
+ScopedClock::ScopedClock(std::string name, bool fps, bool nano) {
     this->name = std::move(name);
     this->fps = fps;
+    this->nano = nano;
     start = std::chrono::high_resolution_clock::now();
 }
 
@@ -19,10 +20,15 @@ ScopedClock::ScopedClock() {
 ScopedClock::~ScopedClock() {
     if(!name.empty()) {
         auto end = std::chrono::high_resolution_clock::now();
-        auto delta = ((double)std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count())*0.000000001f;
+        auto delta = ((double)std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
+        if(fps || !nano) {
+            delta *=0.000000001f;
+        }
+
         if(fps) {
             delta = 1.0f/delta;
         }
+
         std::cout << name << delta << std::endl;
     }
 }
