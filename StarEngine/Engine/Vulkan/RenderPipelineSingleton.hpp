@@ -19,13 +19,20 @@ private:
     Dictionary<std::string, ShaderObject*> *shaders;
 
     StarVulkan *vulkan = nullptr;
+
+    void ReCreateGraphicsPipelines();
+
     virtual ~RenderPipelineSingleton();
 public:
     static RenderPipelineSingleton *getInstance();
     RenderPipelineSingleton(RenderPipelineSingleton &other) = delete;
     void operator=(const RenderPipelineSingleton &) = delete;
+    static RenderPipeline *AddPipeline(const char *vertPath, const char *fragPath);
     static RenderPipeline *AddPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, const char *vertPath, const char *fragPath);
     static std::vector<RenderPipeline*> GetRenderPipelines();
+
+    static RenderPipeline *GetRenderPipeline(int index);
+    static VkPipeline GetGraphicsPipeline(int index);
 
     static void Initialize(StarVulkan *vulkan);
     static void Destroy();

@@ -31,7 +31,6 @@ void StarVulkan::Initialize() {
 
     CreateRenderPass();
     CreateDescriptorSetLayout();
-    CreateGraphicsPipeline();
     CreateCommandPool(mainCommandPool);
     CreateDepthResources();
     CreateFrameBuffers();
@@ -742,7 +741,6 @@ VkFormat StarVulkan::FindSupportedFormat(VkFormat *candidates, uint32_t candidat
 //endregion
 
 //region Command
-
 VkCommandBuffer StarVulkan::BeginSingleTimeCommands(VkCommandPool commandPool) const {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -800,44 +798,6 @@ void StarVulkan::CreateCommandBuffers() {
 
     if(vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate command buffers!");
-    }
-
-    for(size_t i = 0; i < (uint32_t) commandBuffers.size(); i++) {
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        if (vkBeginCommandBuffer((commandBuffers)[i], &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error("failed to begin recording command buffer!");
-        }
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapChainFrameBuffers[i];
-        VkOffset2D offset = {0, 0};
-        renderPassInfo.renderArea.offset = offset;
-        renderPassInfo.renderArea.extent = swapChainExtent;
-
-        VkClearValue clearValues[2];
-        VkClearColorValue clearColor = {{0.0f, 0.0f, 0.0f, 1.0f}};
-        VkClearDepthStencilValue clearDepthStencil = {1.0f, 0};
-        clearValues[0].color = clearColor;
-        clearValues[1].depthStencil = clearDepthStencil;
-
-        renderPassInfo.clearValueCount = 2;
-        renderPassInfo.pClearValues = clearValues;
-
-        VkBuffer vertexBuffersForBind[] = {vertexBuffers[0]};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers((commandBuffers)[i], 0, 1, vertexBuffersForBind, offsets);
-
-        vkCmdBindIndexBuffer((commandBuffers)[i], indexBuffers[0], 0, VK_INDEX_TYPE_UINT32);
-
-        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, renderPipelines[0]->pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
-
-        if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record command buffer!");
-        }
     }
 }
 //endregion
@@ -1074,25 +1034,6 @@ void StarVulkan::CreateRenderPass() {
 }
 //endregion
 
-//region GraphicsPipeline
-void StarVulkan::CreateGraphicsPipeline() {
-    RenderPipelineSingleton::AddPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv");
-    RenderPipelineSingleton::AddPipeline(device, swapChainExtent, descriptorSetLayout, renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/b-frag.spv");
-    renderPipelines = RenderPipelineSingleton::GetRenderPipelines();
-    graphicsPipelines.resize(renderPipelines.size());
-
-    std::vector<VkGraphicsPipelineCreateInfo> createInfos;
-    for(auto renderPipeline : renderPipelines) {
-        createInfos.push_back(renderPipeline->pipelineInfo);
-    }
-
-    VkResult res = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, createInfos.size(), createInfos.data(), nullptr, graphicsPipelines.data());
-    if(res != VK_SUCCESS) {
-        printf("failed to create graphics pipelines!");
-    }
-}
-//endregion
-
 //region Depth
 void StarVulkan::CreateDepthResources() {
     VkFormat depthFormat = FindDepthFormat();
@@ -1301,7 +1242,6 @@ void StarVulkan::RecreateSwapChain() {
     CreateSwapChain();
     CreateSwapChainImages();
     CreateRenderPass();
-    CreateGraphicsPipeline();
     CreateDepthResources();
     CreateFrameBuffers();
     CreateUniformBuffers();
@@ -1323,16 +1263,6 @@ void StarVulkan::CleanupSwapChain() {
     }
 
     vkFreeCommandBuffers(device, mainCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
-    for(auto graphicsPipeline : graphicsPipelines) {
-        vkDestroyPipeline(device, graphicsPipeline, nullptr);
-    }
-    for(auto renderPipeline : renderPipelines) {
-        vkDestroyPipelineLayout(device, renderPipeline->pipelineLayout, nullptr);
-    }
-    for(auto renderPipeline : renderPipelines) {
-        delete(renderPipeline);
-    }
-
     vkDestroyRenderPass(device, renderPass, nullptr);
 
     for (auto imageView : swapChainImageViews) {

@@ -63,7 +63,6 @@ private:
 
     //region DescriptorSets
     VkDescriptorPool descriptorPool{};
-    VkDescriptorSetLayout descriptorSetLayout{};
     //endregion
 
     //region Depth
@@ -209,11 +208,6 @@ public:
     //endregion
     std::vector<std::vector<uint32_t>> indicesList;
 
-    //region PipelineObjects
-    std::vector<VkPipeline> graphicsPipelines;
-    std::vector<RenderPipeline*> renderPipelines;
-    //endregion
-
     //region Command
     VkCommandPool mainCommandPool{};
 
@@ -234,10 +228,7 @@ public:
     std::vector<VkDeviceMemory> indexBuffersMemory;
 
 
-
-    //region GraphicsPipeline
-    void CreateGraphicsPipeline();
-    //endregion
+    VkDescriptorSetLayout descriptorSetLayout{};
 
 
     void Initialize();

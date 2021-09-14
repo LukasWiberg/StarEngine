@@ -36,6 +36,8 @@ public:
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
     RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDescriptorSetLayout descriptorSetLayout, VkRenderPass renderPass, ShaderObject *vertShader, ShaderObject *fragShader);
+
+    virtual ~RenderPipeline();
 };
 
 

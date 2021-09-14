@@ -8,16 +8,16 @@
 
 #include "../Component.hpp"
 #include "../../Shaders/ShaderObject.hpp"
+#include "../../Vulkan/RenderPipeline.hpp"
 
 class Material: public Component  {
 public:
-    Material(ShaderObject shader);
+    Material(const char* vertPath, const char* fragPath);
 
 private:
-    void *shaderData = nullptr;
+    RenderPipeline *renderPipeline;
 
 public :
-    ShaderObject shader;
 
 };
 

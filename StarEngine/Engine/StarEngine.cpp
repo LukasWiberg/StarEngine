@@ -22,32 +22,31 @@ StarEngine::StarEngine() {
     vulkan = new StarVulkan();
     RenderPipelineSingleton::Initialize(vulkan);
 
-    {
-        auto c = ScopedClock("GameObject creation time: ", false);
-        gameObjects.resize(gameObjectCount);
-        this->vulkan->verticesList.resize(1);
-        this->vulkan->indicesList.resize(1);
-        for(int i = 0; i<gameObjectCount; i++) {
-            if(i == 0) {
-                gameObjects[0] = new GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f), ModelHelper::LoadModel("Resources/Meshes/b.obj"));
-            } else {
-                gameObjects[i] = new GameObject(gameObjects[0]);
-                gameObjects[i]->position = glm::vec3(dist(randGen),dist(randGen),dist(randGen));
-            }
-            uint32_t lastVertexIndex = this->vulkan->verticesList[0].size();
-            this->vulkan->verticesList[0].resize(lastVertexIndex + gameObjects[i]->model.vertices.size());
-            for(int j = 0; j<gameObjects[i]->model.vertices.size(); j++) {
-                this->vulkan->verticesList[0][lastVertexIndex + j] = gameObjects[i]->model.vertices[j];
-            }
-            uint32_t lastIndexIndex = this->vulkan->indicesList[0].size();
-            this->vulkan->indicesList[0].resize(lastIndexIndex + gameObjects[i]->model.indices.size());
-            for(int j = 0; j<gameObjects[i]->model.indices.size(); j++) {
-                this->vulkan->indicesList[0][lastIndexIndex + j] = lastVertexIndex + gameObjects[i]->model.indices[j];
-            }
+    gameObjects.resize(gameObjectCount);
+    this->vulkan->verticesList.resize(1);
+    this->vulkan->indicesList.resize(1);
+    for(int i = 0; i<gameObjectCount; i++) {
+        if(i == 0) {
+            gameObjects[0] = new GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f), ModelHelper::LoadModel("Resources/Meshes/b.obj"));
+        } else {
+            gameObjects[i] = new GameObject(gameObjects[0]);
+            gameObjects[i]->position = glm::vec3(dist(randGen),dist(randGen),dist(randGen));
+        }
+        uint32_t lastVertexIndex = this->vulkan->verticesList[0].size();
+        this->vulkan->verticesList[0].resize(lastVertexIndex + gameObjects[i]->model.vertices.size());
+        for(int j = 0; j<gameObjects[i]->model.vertices.size(); j++) {
+            this->vulkan->verticesList[0][lastVertexIndex + j] = gameObjects[i]->model.vertices[j];
+        }
+        uint32_t lastIndexIndex = this->vulkan->indicesList[0].size();
+        this->vulkan->indicesList[0].resize(lastIndexIndex + gameObjects[i]->model.indices.size());
+        for(int j = 0; j<gameObjects[i]->model.indices.size(); j++) {
+            this->vulkan->indicesList[0][lastIndexIndex + j] = lastVertexIndex + gameObjects[i]->model.indices[j];
         }
     }
 
     vulkan->Initialize();
+    RenderPipelineSingleton::AddPipeline("Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv");
+    RenderPipelineSingleton::AddPipeline("Resources/Shaders/a-vert.spv", "Resources/Shaders/b-frag.spv");
 
 
     camera = new Camera(1.0f);
@@ -66,12 +65,15 @@ void StarEngine::StartEngine() {
 void StarEngine::EngineLoop() {
     ScopedClock c = ScopedClock();
     while(!glfwWindowShouldClose(vulkan->window)) {
-        ScopedClock d = ScopedClock("FPS: ", true);
+//        ScopedClock d = ScopedClock("FPS: ", true);
+//        ScopedClock e = ScopedClock("Frametime: ", false, true);
         glfwPollEvents();
         auto frameTime = c.GetElapsedSeconds();
-
-        this->LogicUpdate(frameTime);
-        this->GraphicsUpdate(frameTime);
+        {
+            ScopedClock e = ScopedClock("Update time: ", false, true);
+            this->LogicUpdate(frameTime);
+            this->GraphicsUpdate(frameTime);
+        }
 
         camera->UpdateCamera(frameTime);
         c.Reset();
@@ -96,7 +98,7 @@ void StarEngine::GraphicsUpdate(double frameTime) {
 }
 
 void StarEngine::DrawFrame(double frameTime) {
-
+    ScopedClock e = ScopedClock("DrawFrame time: ", false, true);
     vkWaitForFences(vulkan->device, 1, &vulkan->inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -120,8 +122,8 @@ void StarEngine::DrawFrame(double frameTime) {
     vulkan->imagesInFlight[imageIndex] = vulkan->inFlightFences[currentFrame];
 
     VkCommandBuffer cmdBuffer = this->vulkan->BeginSingleTimeCommands(this->vulkan->mainCommandPool);
+//    VkCommandBuffer cmdBuffer = vulkan->commandBuffers[imageIndex];
     StartRenderPass(cmdBuffer);
-    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->graphicsPipelines[0]);
 
 
     VkDeviceSize offsets[] = {0};
@@ -129,35 +131,39 @@ void StarEngine::DrawFrame(double frameTime) {
 
     vkCmdBindIndexBuffer(cmdBuffer, this->vulkan->indexBuffers[0], 0, VK_INDEX_TYPE_UINT32);
 
-    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->renderPipelines[1]->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetRenderPipeline(0)->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
 
     PushConstantData constants{};
     int32_t vertexOffset = 0;
-    {
-        for (int i = 0; i < (int) std::floor(gameObjects.size() / 2); i++) {
-            auto gameObject = gameObjects[i];
 
-            constants.transform = gameObject->transform;
-            vkCmdPushConstants(cmdBuffer, this->vulkan->renderPipelines[0]->pipelineLayout,
-                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData),
-                               &constants);
-            vkCmdDrawIndexed(cmdBuffer, gameObject->model.indices.size(), 1, 0, vertexOffset, 0);
-            vertexOffset += (int32_t) gameObject->model.vertices.size();
-        }
-        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->vulkan->graphicsPipelines[1]);
 
-        for (int i = (int) std::floor(gameObjects.size() / 2); i < gameObjects.size(); i++) {
-            auto gameObject = gameObjects[i];
-            constants.transform = gameObject->transform;
-            vkCmdPushConstants(cmdBuffer, this->vulkan->renderPipelines[1]->pipelineLayout,
-                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData),
-                               &constants);
-            vkCmdDrawIndexed(cmdBuffer, gameObject->model.indices.size(), 1, 0, vertexOffset, 0);
-            vertexOffset += (int32_t) gameObject->model.vertices.size();
-        }
-        vkCmdEndRenderPass(cmdBuffer);
+    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetGraphicsPipeline(0));
+    auto pipelineLayout = RenderPipelineSingleton::GetRenderPipeline(0)->pipelineLayout;
+    for (int i = 0; i < (int) std::floor(gameObjects.size() / 2); i++) {
+        auto gameObject = gameObjects[i];
 
+        constants.transform = gameObject->transform;
+        vkCmdPushConstants(cmdBuffer, pipelineLayout,
+                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData),
+                           &constants);
+        vkCmdDrawIndexed(cmdBuffer, gameObject->model.indices.size(), 1, 0, vertexOffset, 0);
+        vertexOffset += (int32_t) gameObject->model.vertices.size();
     }
+    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetGraphicsPipeline(1));
+    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetRenderPipeline(1)->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
+
+    pipelineLayout = RenderPipelineSingleton::GetRenderPipeline(1)->pipelineLayout;
+    for (int i = (int) std::floor(gameObjects.size() / 2); i < gameObjects.size(); i++) {
+        auto gameObject = gameObjects[i];
+        constants.transform = gameObject->transform;
+        vkCmdPushConstants(cmdBuffer, pipelineLayout,
+                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData),
+                           &constants);
+        vkCmdDrawIndexed(cmdBuffer, gameObject->model.indices.size(), 1, 0, vertexOffset, 0);
+        vertexOffset += (int32_t) gameObject->model.vertices.size();
+    }
+    vkCmdEndRenderPass(cmdBuffer);
+
     EndRenderCommand(cmdBuffer, imageIndex);
 
     rotIterator+=frameTime;
@@ -197,9 +203,10 @@ void StarEngine::EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex
     submitInfo.pWaitDstStageMask = waitStages;
 
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &vulkan->commandBuffers[imageIndex];
+    submitInfo.pCommandBuffers = &cmdBuffer;
 
-    this->vulkan->EndSingleTimeCommands(cmdBuffer, this->vulkan->mainCommandPool, this->vulkan->graphicsQueue);
+//    this->vulkan->EndSingleTimeCommands(cmdBuffer, this->vulkan->mainCommandPool, this->vulkan->graphicsQueue);
+    vkEndCommandBuffer(cmdBuffer);
 
     VkSemaphore signalSemaphores[] = {vulkan->renderFinishedSemaphores[currentFrame]};
     submitInfo.signalSemaphoreCount = 1;

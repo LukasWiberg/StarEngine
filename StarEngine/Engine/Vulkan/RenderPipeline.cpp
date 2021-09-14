@@ -151,3 +151,7 @@ RenderPipeline::RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDe
     pipelineInfo.pNext = VK_NULL_HANDLE;
     pipelineInfo.flags = 0;
 }
+
+RenderPipeline::~RenderPipeline() {
+    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+}
