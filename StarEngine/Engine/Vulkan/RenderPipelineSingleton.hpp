@@ -14,7 +14,7 @@ private:
     RenderPipelineSingleton();
 
     static RenderPipelineSingleton *instance;
-    std::vector<RenderPipeline*> renderPipelines;
+    Dictionary<std::string, RenderPipeline*> renderPipelines;
     std::vector<VkPipeline> graphicsPipelines;
     Dictionary<std::string, ShaderObject*> *shaders;
 

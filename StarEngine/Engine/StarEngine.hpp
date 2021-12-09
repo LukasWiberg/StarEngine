@@ -15,6 +15,7 @@
 #include "Input/Mouse.hpp"
 #include "Vulkan/StarVulkan.hpp"
 #include "Object/GameObject.hpp"
+#include "Object/Components/Mesh.hpp"
 
 class StarEngine {
 private:

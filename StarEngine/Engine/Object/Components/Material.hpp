@@ -12,7 +12,7 @@
 
 class Material: public Component  {
 public:
-    Material(const char* vertPath, const char* fragPath);
+    Material(GameObject *gameObject, const char *vertPath, const char *fragPath);
 
 private:
     RenderPipeline *renderPipeline;

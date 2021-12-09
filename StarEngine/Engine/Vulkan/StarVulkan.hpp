@@ -150,10 +150,6 @@ private:
     void CreateTextureSampler();
     //endregion
 
-    //region IndexBuffer
-    void CreateIndexBuffers();
-    //endregion
-
     //region Buffer
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     //endregion
@@ -201,6 +197,10 @@ public:
 
     //region VertexBuffer
     void CreateVertexBuffers();
+    //endregion
+
+    //region IndexBuffer
+    void CreateIndexBuffers();
     //endregion
 
     //region VertexObjects

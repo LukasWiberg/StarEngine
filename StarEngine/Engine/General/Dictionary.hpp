@@ -54,11 +54,21 @@ public:
     };
     void Clear() {
         keys.clear();
-        for(auto value : values) {
-            delete(value);
-        }
         values.clear();
     };
+
+    Val GetAtIndex(uint32_t index) {
+        return values[index];
+    }
+
+    uint32_t Size() { return keys.size(); }
+
+    std::vector<Val> GetAll() { return values; }
+
+    auto begin() { return values.begin(); }
+    auto end() { return values.end(); }
+    auto begin() const { return values.begin(); }
+    auto end() const { return values.end(); }
 };
 
 #endif //B_OBJ_DICTIONARY_HPP

@@ -9,6 +9,8 @@
 #include "Constants.hpp"
 #include "General/ScopedClock.hpp"
 #include "Vulkan/RenderPipelineSingleton.hpp"
+#include "Object/Components/Material.hpp"
+#include "Object/Components/Mesh.hpp"
 
 
 StarEngine *StarEngine::GetInstance() {
@@ -25,28 +27,37 @@ StarEngine::StarEngine() {
     gameObjects.resize(gameObjectCount);
     this->vulkan->verticesList.resize(1);
     this->vulkan->indicesList.resize(1);
+
+    vulkan->Initialize();
+
+    ModelObject* model = ModelHelper::LoadModel("Resources/Meshes/b.obj");
+    Mesh *meshRef = nullptr;
     for(int i = 0; i<gameObjectCount; i++) {
         if(i == 0) {
-            gameObjects[0] = new GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f), ModelHelper::LoadModel("Resources/Meshes/b.obj"));
+            gameObjects[0] = new GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f));
+            gameObjects[0]->AddComponent(new Material(gameObjects[0], "Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv"));
+            auto* mesh = new Mesh(gameObjects[0], model, Mesh::MeshCopyMode::Reference);
+            meshRef = static_cast<Mesh *>(gameObjects[0]->AddComponent(mesh));
         } else {
             gameObjects[i] = new GameObject(gameObjects[0]);
             gameObjects[i]->position = glm::vec3(dist(randGen),dist(randGen),dist(randGen));
+            gameObjects[i]->AddComponent(new Material(gameObjects[0], "Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv"));
+            meshRef = static_cast<Mesh *>(gameObjects[i]->AddComponent(new Mesh(gameObjects[i], model, Mesh::MeshCopyMode::Reference)));
         }
         uint32_t lastVertexIndex = this->vulkan->verticesList[0].size();
-        this->vulkan->verticesList[0].resize(lastVertexIndex + gameObjects[i]->model.vertices.size());
-        for(int j = 0; j<gameObjects[i]->model.vertices.size(); j++) {
-            this->vulkan->verticesList[0][lastVertexIndex + j] = gameObjects[i]->model.vertices[j];
+        this->vulkan->verticesList[0].resize(lastVertexIndex + meshRef->model->vertices.size());
+        for(int j = 0; j<meshRef->model->vertices.size(); j++) {
+            this->vulkan->verticesList[0][lastVertexIndex + j] = meshRef->model->vertices[j];
         }
         uint32_t lastIndexIndex = this->vulkan->indicesList[0].size();
-        this->vulkan->indicesList[0].resize(lastIndexIndex + gameObjects[i]->model.indices.size());
-        for(int j = 0; j<gameObjects[i]->model.indices.size(); j++) {
-            this->vulkan->indicesList[0][lastIndexIndex + j] = lastVertexIndex + gameObjects[i]->model.indices[j];
+        this->vulkan->indicesList[0].resize(lastIndexIndex + meshRef->model->indices.size());
+        for(int j = 0; j<meshRef->model->indices.size(); j++) {
+            this->vulkan->indicesList[0][lastIndexIndex + j] = lastVertexIndex + meshRef->model->indices[j];
         }
     }
 
-    vulkan->Initialize();
-    RenderPipelineSingleton::AddPipeline("Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv");
-    RenderPipelineSingleton::AddPipeline("Resources/Shaders/a-vert.spv", "Resources/Shaders/b-frag.spv");
+    this->vulkan->CreateVertexBuffers();
+    this->vulkan->CreateIndexBuffers();
 
 
     camera = new Camera(1.0f);
@@ -66,11 +77,11 @@ void StarEngine::EngineLoop() {
     ScopedClock c = ScopedClock();
     while(!glfwWindowShouldClose(vulkan->window)) {
 //        ScopedClock d = ScopedClock("FPS: ", true);
-//        ScopedClock e = ScopedClock("Frametime: ", false, true);
+        ScopedClock e = ScopedClock("Frametime: ", false, true);
         glfwPollEvents();
         auto frameTime = c.GetElapsedSeconds();
         {
-            ScopedClock e = ScopedClock("Update time: ", false, true);
+//            ScopedClock e = ScopedClock("Update time: ", false, true);
             this->LogicUpdate(frameTime);
             this->GraphicsUpdate(frameTime);
         }
@@ -98,7 +109,7 @@ void StarEngine::GraphicsUpdate(double frameTime) {
 }
 
 void StarEngine::DrawFrame(double frameTime) {
-    ScopedClock e = ScopedClock("DrawFrame time: ", false, true);
+//    ScopedClock e = ScopedClock("DrawFrame time: ", false, true);
     vkWaitForFences(vulkan->device, 1, &vulkan->inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -146,21 +157,24 @@ void StarEngine::DrawFrame(double frameTime) {
         vkCmdPushConstants(cmdBuffer, pipelineLayout,
                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData),
                            &constants);
-        vkCmdDrawIndexed(cmdBuffer, gameObject->model.indices.size(), 1, 0, vertexOffset, 0);
-        vertexOffset += (int32_t) gameObject->model.vertices.size();
+        Mesh* meshRef = gameObject->GetComponent<Mesh>();
+        size_t size = meshRef->model->indices.size();
+        vkCmdDrawIndexed(cmdBuffer, meshRef->model->indices.size(), 1, 0, vertexOffset, 0);
+        vertexOffset += (int32_t) meshRef->model->vertices.size();
     }
-    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetGraphicsPipeline(1));
-    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetRenderPipeline(1)->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
+//    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetGraphicsPipeline(1));
+//    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetRenderPipeline(1)->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
 
-    pipelineLayout = RenderPipelineSingleton::GetRenderPipeline(1)->pipelineLayout;
+//    pipelineLayout = RenderPipelineSingleton::GetRenderPipeline(1)->pipelineLayout;
     for (int i = (int) std::floor(gameObjects.size() / 2); i < gameObjects.size(); i++) {
         auto gameObject = gameObjects[i];
         constants.transform = gameObject->transform;
         vkCmdPushConstants(cmdBuffer, pipelineLayout,
                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData),
                            &constants);
-        vkCmdDrawIndexed(cmdBuffer, gameObject->model.indices.size(), 1, 0, vertexOffset, 0);
-        vertexOffset += (int32_t) gameObject->model.vertices.size();
+        Mesh* meshRef = gameObject->GetComponent<Mesh>();
+        vkCmdDrawIndexed(cmdBuffer, meshRef->model->indices.size(), 1, 0, vertexOffset, 0);
+        vertexOffset += (int32_t) meshRef->model->vertices.size();
     }
     vkCmdEndRenderPass(cmdBuffer);
 

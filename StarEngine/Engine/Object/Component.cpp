@@ -3,3 +3,8 @@
 //
 
 #include "Component.hpp"
+
+Component::Component(GameObject *gameObject) {
+    this->gameObject = gameObject;
+    this->id = 0;
+}

@@ -39,8 +39,6 @@ void StarVulkan::Initialize() {
 
 
     CreateTextureSampler();
-    CreateVertexBuffers();
-    CreateIndexBuffers();
     CreateUniformBuffers();
     CreateDescriptorPool();
     CreateDescriptorSets();
