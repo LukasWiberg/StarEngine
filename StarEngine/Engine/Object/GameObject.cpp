@@ -7,13 +7,7 @@
 #include <utility>
 #include <glm/gtx/euler_angles.hpp>
 #include <algorithm>
-
-GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, ModelObject model) {
-    this->position = position;
-    this->rotation = rotation;
-    this->model = std::move(model);
-    UpdateTransform();
-}
+#include <iostream>
 
 GameObject::GameObject(glm::vec3 position, glm::vec3 rotation) {
     this->position = position;
@@ -25,7 +19,6 @@ GameObject::GameObject(GameObject *gameObject) {
     this->position = gameObject->position;
     this->rotation = gameObject->rotation;
     UpdateTransform();
-    this->model = ModelHelper::CopyModel(gameObject->model);
 }
 
 void GameObject::UpdateTransform() {
@@ -42,3 +35,4 @@ void GameObject::LogicUpdate(double frameTime) {
 
 void GameObject::GraphicsUpdate(double frameTime) {
 }
+

@@ -7,20 +7,17 @@
 #include <glm/glm.hpp>
 #include "ModelHelper.hpp"
 
-ModelObject ModelHelper::LoadModel(const std::string& modelPath) {
+ModelObject* ModelHelper::LoadModel(const std::string& modelPath) {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    std::vector<struct Vertex> vertexBuffer;
-    std::vector<uint32_t> indexBuffer;
-
     if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelPath.c_str())) {
         throw std::runtime_error(warn + err);
     }
 
-
+    auto *ret = new ModelObject();
     for (const auto& shape : shapes) {
         for (const auto& index : shape.mesh.indices) {
             struct Vertex vertex{};
@@ -39,14 +36,18 @@ ModelObject ModelHelper::LoadModel(const std::string& modelPath) {
             vertex.color = {1.0f, 1.0f, 1.0f};
 
 
-            vertexBuffer.push_back(vertex);
-            indexBuffer.push_back(indexBuffer.size());
+            ret->vertices.push_back(vertex);
+            ret->indices.push_back(ret->indices.size());
         }
     }
-    ModelObject ret{};
 
-    ret.vertices = vertexBuffer;
-    ret.indices = indexBuffer;
+    return ret;
+}
+
+ModelObject ModelHelper::CopyModel(ModelObject *model) {
+    ModelObject ret{};
+    ret.vertices = model->vertices;
+    ret.indices = model->indices;
     return ret;
 }
 

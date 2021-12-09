@@ -3,7 +3,10 @@
 //
 
 #include "Material.hpp"
+#include "../../Vulkan/RenderPipelineSingleton.hpp"
 
-Material::Material(ShaderObject shader) : shader(shader) {
-    this->shader = shader;
+Material::Material(GameObject *gameObject, const char *vertPath, const char *fragPath)
+        : Component(gameObject) {
+    this->gameObject = gameObject;
+    renderPipeline = RenderPipelineSingleton::AddPipeline(vertPath, fragPath);
 }

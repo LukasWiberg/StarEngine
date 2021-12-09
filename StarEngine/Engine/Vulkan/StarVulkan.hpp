@@ -63,7 +63,6 @@ private:
 
     //region DescriptorSets
     VkDescriptorPool descriptorPool{};
-    VkDescriptorSetLayout descriptorSetLayout{};
     //endregion
 
     //region Depth
@@ -151,10 +150,6 @@ private:
     void CreateTextureSampler();
     //endregion
 
-    //region IndexBuffer
-    void CreateIndexBuffers();
-    //endregion
-
     //region Buffer
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     //endregion
@@ -204,15 +199,14 @@ public:
     void CreateVertexBuffers();
     //endregion
 
+    //region IndexBuffer
+    void CreateIndexBuffers();
+    //endregion
+
     //region VertexObjects
     std::vector<std::vector<Vertex>> verticesList;
     //endregion
     std::vector<std::vector<uint32_t>> indicesList;
-
-    //region PipelineObjects
-    std::vector<VkPipeline> graphicsPipelines;
-    std::vector<RenderPipeline*> renderPipelines;
-    //endregion
 
     //region Command
     VkCommandPool mainCommandPool{};
@@ -234,10 +228,7 @@ public:
     std::vector<VkDeviceMemory> indexBuffersMemory;
 
 
-
-    //region GraphicsPipeline
-    void CreateGraphicsPipeline();
-    //endregion
+    VkDescriptorSetLayout descriptorSetLayout{};
 
 
     void Initialize();
