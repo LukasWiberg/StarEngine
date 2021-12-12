@@ -6,11 +6,9 @@
 
 Mesh::Mesh(GameObject *gameObject, const char *modelPath): Component(gameObject) {
     this->model = ModelHelper::LoadModel(modelPath);
-    this->id = 1;
 }
 
 Mesh::Mesh(GameObject *gameObject, ModelObject *model, MeshCopyMode mode): Component(gameObject) {
-    this->id = 2;
     switch(mode) {
         case MeshCopyMode::Copy:
             *this->model = ModelHelper::CopyModel(model);

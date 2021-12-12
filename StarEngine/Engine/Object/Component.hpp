@@ -9,7 +9,6 @@ class Component;
 
 class Component {
 public:
-    int id;
     GameObject *gameObject;
 
     explicit Component(GameObject *gameObject);

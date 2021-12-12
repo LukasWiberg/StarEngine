@@ -49,7 +49,18 @@ void StarVulkan::Initialize() {
 void StarVulkan::InitGLFW() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Vulkan", nullptr, nullptr);
+    int monitorsCount;
+    auto monitors = glfwGetMonitors(&monitorsCount);
+    //Currently use 1 since it's the one I'm testing on.
+    auto monitor = monitors[1];
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+    glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+    glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+    glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+
+    window = glfwCreateWindow(mode->width, mode->height, "StarEngine", monitor, nullptr);
+//    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Vulkan", monitors[1], nullptr);
     glfwSetWindowUserPointer(window, this);
     //Disabled for now, static function...
     glfwSetFramebufferSizeCallback(window, StarVulkan::FramebufferResizeCallback);
