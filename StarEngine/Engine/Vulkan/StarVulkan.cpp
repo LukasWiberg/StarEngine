@@ -35,7 +35,7 @@ void StarVulkan::Initialize() {
     CreateDepthResources();
     CreateFrameBuffers();
 
-    mainTex = CreateTexture((char*)"Resources/Textures/b.png", false, mainCommandPool, graphicsQueue);
+    mainTex = CreateTexture((char*)"Resources/Textures/tex_atlas.png", false, mainCommandPool, graphicsQueue);
 
 
     CreateTextureSampler();

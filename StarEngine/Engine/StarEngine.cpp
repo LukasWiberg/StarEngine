@@ -31,7 +31,8 @@ StarEngine::StarEngine() {
 
     vulkan->Initialize();
 
-    ModelObject* model = ModelHelper::LoadModel("Resources/Meshes/b.obj");
+    ModelObject* model = ModelHelper::CreateCube();
+//    ModelObject* model = ModelHelper::LoadModel("Resources/Meshes/b.obj");
     Mesh *meshRef = nullptr;
     for(int i = 0; i<gameObjectCount; i++) {
         if(i == 0) {

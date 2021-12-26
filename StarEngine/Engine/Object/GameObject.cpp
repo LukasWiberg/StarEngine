@@ -29,8 +29,8 @@ void GameObject::UpdateTransform() {
 }
 
 void GameObject::LogicUpdate(double frameTime) {
-    this->position += glm::vec3((((float)rand()/RAND_MAX)-0.5f)*frameTime*5, (((float)rand()/RAND_MAX)-0.5f)*frameTime*5, (((float)rand()/RAND_MAX)-0.5f)*frameTime*5);
-    this->rotation = glm::vec3(std::clamp(this->rotation.x+(((float)rand()/RAND_MAX)-0.5f)*(float)frameTime*50.0f, 0.0f, 360.0f), 0.0f, 0.0f);
+//    this->position += glm::vec3((((float)rand()/RAND_MAX)-0.5f)*frameTime*5, (((float)rand()/RAND_MAX)-0.5f)*frameTime*5, (((float)rand()/RAND_MAX)-0.5f)*frameTime*5);
+//    this->rotation = glm::vec3(std::clamp(this->rotation.x+(((float)rand()/RAND_MAX)-0.5f)*(float)frameTime*50.0f, 0.0f, 360.0f), 0.0f, 0.0f);
 }
 
 void GameObject::GraphicsUpdate(double frameTime) {

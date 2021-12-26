@@ -19,6 +19,7 @@ public:
     static ModelObject* LoadModel(const std::string& modelPath);
     static ModelObject CopyModel(ModelObject &model);
     static ModelObject CopyModel(ModelObject *model);
+    static ModelObject* CreateCube();
 };
 
 #endif //STARENGINE_MODELHELPER_HPP
