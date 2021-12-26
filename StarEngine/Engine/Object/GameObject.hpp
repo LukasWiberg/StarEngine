@@ -15,7 +15,8 @@ class GameObject;
 
 class GameObject {
 private:
-    std::vector<Component*> components;
+    std::vector<void*> components;
+    std::vector<const char*> componentTypes;
 
 public:
     glm::vec3 position{};
@@ -33,21 +34,22 @@ public:
 
 
     template<class T>
-    T* AddComponent(T *component) {
+    T* AddComponent(T* component) {
         this->components.push_back(component);
+        this->componentTypes.push_back(typeid(T).name());
         return component;
     }
 
     template<class T>
     T* GetComponent() {
-        for(auto component : components) {
-            if(typeid(T).name()==typeid(*component).name()) {
-                auto a = static_cast<T*>(component);
-                return a;
-            } else {
+        int i = 0;
+        for(auto componentType : componentTypes) {
+            if(typeid(T).name()==componentType) {
+                return static_cast<T*>(components[i]);
             }
+            i++;
         }
-        throw std::runtime_error("No component with specified name found");
+        return nullptr;
     }
 
 };

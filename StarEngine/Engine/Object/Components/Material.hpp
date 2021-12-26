@@ -11,13 +11,11 @@
 #include "../../Vulkan/RenderPipeline.hpp"
 
 class Material: public Component  {
-public:
-    Material(GameObject *gameObject, const char *vertPath, const char *fragPath);
-
 private:
     RenderPipeline *renderPipeline;
 
-public :
+public:
+    Material(GameObject *gameObject, const char *vertPath, const char *fragPath);
 
 };
 

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <unistd.h>
 #include "StarEngine.hpp"
 #include "Constants.hpp"
 #include "General/ScopedClock.hpp"
@@ -30,14 +31,15 @@ StarEngine::StarEngine() {
 
     vulkan->Initialize();
 
-    ModelObject* model = ModelHelper::LoadModel("Resources/Meshes/b.obj");
+    ModelObject* model = ModelHelper::CreateCube();
+//    ModelObject* model = ModelHelper::LoadModel("Resources/Meshes/b.obj");
     Mesh *meshRef = nullptr;
     for(int i = 0; i<gameObjectCount; i++) {
         if(i == 0) {
             gameObjects[0] = new GameObject(glm::vec3(0,0,0), glm::vec3(0.0f, 0.0f, 0.0f));
             gameObjects[0]->AddComponent(new Material(gameObjects[0], "Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv"));
             auto* mesh = new Mesh(gameObjects[0], model, Mesh::MeshCopyMode::Reference);
-            meshRef = static_cast<Mesh *>(gameObjects[0]->AddComponent(mesh));
+            meshRef = gameObjects[0]->AddComponent<Mesh>(mesh);
         } else {
             gameObjects[i] = new GameObject(gameObjects[0]);
             gameObjects[i]->position = glm::vec3(dist(randGen),dist(randGen),dist(randGen));
@@ -150,23 +152,7 @@ void StarEngine::DrawFrame(double frameTime) {
 
     vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetGraphicsPipeline(0));
     auto pipelineLayout = RenderPipelineSingleton::GetRenderPipeline(0)->pipelineLayout;
-    for (int i = 0; i < (int) std::floor(gameObjects.size() / 2); i++) {
-        auto gameObject = gameObjects[i];
-
-        constants.transform = gameObject->transform;
-        vkCmdPushConstants(cmdBuffer, pipelineLayout,
-                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData),
-                           &constants);
-        Mesh* meshRef = gameObject->GetComponent<Mesh>();
-        size_t size = meshRef->model->indices.size();
-        vkCmdDrawIndexed(cmdBuffer, meshRef->model->indices.size(), 1, 0, vertexOffset, 0);
-        vertexOffset += (int32_t) meshRef->model->vertices.size();
-    }
-//    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetGraphicsPipeline(1));
-//    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetRenderPipeline(1)->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
-
-//    pipelineLayout = RenderPipelineSingleton::GetRenderPipeline(1)->pipelineLayout;
-    for (int i = (int) std::floor(gameObjects.size() / 2); i < gameObjects.size(); i++) {
+    for (int i = 0; i < gameObjects.size(); i++) {
         auto gameObject = gameObjects[i];
         constants.transform = gameObject->transform;
         vkCmdPushConstants(cmdBuffer, pipelineLayout,

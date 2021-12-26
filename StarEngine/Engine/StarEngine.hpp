@@ -15,7 +15,6 @@
 #include "Input/Mouse.hpp"
 #include "Vulkan/StarVulkan.hpp"
 #include "Object/GameObject.hpp"
-#include "Object/Components/Mesh.hpp"
 
 class StarEngine {
 private:
@@ -40,7 +39,7 @@ private:
     VkCommandBuffer StartRenderPass(VkCommandBuffer cmdBuffer);
     void EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex);
 
-    uint32_t gameObjectCount = 2048;
+    uint32_t gameObjectCount = 2;
     std::vector<GameObject*> gameObjects;
 
     void GraphicsUpdate(double frameTime);
