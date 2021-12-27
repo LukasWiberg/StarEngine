@@ -152,7 +152,6 @@ void StarEngine::DrawFrame(double frameTime) {
     for(int i = 0; i<this->vulkan->indicesList.size(); i++) {
         vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &this->vulkan->vertexBuffers[i], offsets);
         vkCmdBindIndexBuffer(cmdBuffer, this->vulkan->indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
-        std::cout << this->vulkan->indicesList[i].size() << std::endl;
         vkCmdDrawIndexed(cmdBuffer, this->vulkan->indicesList[i].size(), 1, 0, 0 ,0);
 //        for (int i = 0; i < gameObjects.size(); i++) {
 //            auto gameObject = gameObjects[i];

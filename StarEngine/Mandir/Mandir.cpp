@@ -9,17 +9,28 @@
 Mandir::Mandir(StarEngine* pEngine) {
     this->engine = pEngine;
     {
-        ScopedClock c = ScopedClock("Created new chunk in: ", false, true);
-        chunks.push_back(new Chunk(glm::vec2(0,0)));
+        ScopedClock c = ScopedClock("Created new chunks in: ", false, true);
+        for(int x = -0; x<=0; x++) {
+            for(int z = -0; z <= 0; z++) {
+                chunks.push_back(new Chunk(glm::vec3(x, -1, z)));
+            }
+        }
     }
 
-    this->engine->AddVerticeList(chunks[0]->vertices);
-    this->engine->AddIndexList(chunks[0]->indices);
+    {
+        ScopedClock c = ScopedClock("Adding vertex and index lists in: ", false, true);
+        uint64_t t = 0;
+        for(auto& chunk : chunks) {
+            this->engine->AddVerticeList(chunk->vertices);
+            this->engine->AddIndexList(chunk->indices);
+            t+=chunk->indices.size();
+        }
+    }
+
     {
         ScopedClock c = ScopedClock("RecreateMeshBuffers in: ", false, true);
         this->engine->RecreateMeshBuffers();
     }
-
 }
 
 

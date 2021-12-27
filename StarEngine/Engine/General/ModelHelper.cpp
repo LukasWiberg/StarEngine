@@ -108,7 +108,5 @@ ModelObject* ModelHelper::CreateCube() {
             23, 20, 22,
     };
 
-    std::cout << ret->indices.size() << std::endl;
-    std::cout << ret->vertices.size() << std::endl;
     return ret;
 }
