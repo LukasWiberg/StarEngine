@@ -49,7 +49,7 @@ ModelObject* ModelHelper::CreateCube() {
     auto *ret = new ModelObject();
 
     float texX = 0.0f;
-    float texY = 0.05f;
+    float texY = 0.0f;
 
     //Side 1
     ret->vertices.emplace_back(Vertex{glm::vec3(0,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)});
@@ -75,7 +75,7 @@ ModelObject* ModelHelper::CreateCube() {
     ret->vertices.emplace_back(Vertex{glm::vec3(1,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)});
     ret->vertices.emplace_back(Vertex{glm::vec3(1,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)});
 
-    texY = 0.00f;
+//    texY = 0.00f;
 
     //Top
     ret->vertices.emplace_back(Vertex{glm::vec3(0,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)});
@@ -83,7 +83,7 @@ ModelObject* ModelHelper::CreateCube() {
     ret->vertices.emplace_back(Vertex{glm::vec3(1,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)});
     ret->vertices.emplace_back(Vertex{glm::vec3(1,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)});
 
-    texY = 0.1f;
+//    texY = 0.1f;
 
     //Bottom
     ret->vertices.emplace_back(Vertex{glm::vec3(0,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)});

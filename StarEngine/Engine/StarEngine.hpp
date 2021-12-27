@@ -5,6 +5,7 @@
 #ifndef STARENGINE_STARENGINE_HPP
 #define STARENGINE_STARENGINE_HPP
 
+class StarEngine;
 #define GLFW_INCLUDE_VULKAN
 #include <chrono>
 #include <GLFW/glfw3.h>
@@ -15,7 +16,9 @@
 #include "Input/Mouse.hpp"
 #include "Vulkan/StarVulkan.hpp"
 #include "Object/GameObject.hpp"
+#include "../Mandir/Mandir.hpp"
 
+typedef void (*UpdateFunction)(double frameTime);
 class StarEngine {
 private:
     std::random_device rd;
@@ -23,6 +26,8 @@ private:
     std::uniform_real_distribution<double> dist{-10.0, 10.0};
     static StarEngine *instance;
     StarEngine();
+
+    Mandir* gameCore;
 
     StarVulkan *vulkan;
     Keyboard *keyboard;
@@ -39,7 +44,7 @@ private:
     VkCommandBuffer StartRenderPass(VkCommandBuffer cmdBuffer);
     void EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex);
 
-    uint32_t gameObjectCount = 2;
+//    uint32_t gameObjectCount = 65536;
     std::vector<GameObject*> gameObjects;
 
     void GraphicsUpdate(double frameTime);
@@ -49,6 +54,10 @@ public:
     static StarEngine *GetInstance();
     void StartEngine();
     virtual ~StarEngine();
+
+    void AddVerticeList(const std::vector<Vertex>& vertices);
+    void AddIndexList(const std::vector<uint32_t>& indices);
+    void RecreateMeshBuffers();
 
     Camera *camera;
     bool framebufferResized = false;

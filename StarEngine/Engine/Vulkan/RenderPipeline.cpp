@@ -112,16 +112,20 @@ RenderPipeline::RenderPipeline(VkDevice device, VkExtent2D swapChainExtent, VkDe
     depthStencil.front = {}; // Optional
     depthStencil.back = {}; // Optional
 
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.size = sizeof(PushConstantData);
-    pushConstantRange.offset = 0;
+    //TODO: Disable push constants for now
+//    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+//    pushConstantRange.size = sizeof(PushConstantData);
+//    pushConstantRange.offset = 0;
 
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutCreateInfo.setLayoutCount = 1;
     pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
     pipelineLayoutCreateInfo.pNext = VK_NULL_HANDLE;
-    pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
-    pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+    pipelineLayoutCreateInfo.pPushConstantRanges = VK_NULL_HANDLE;
+//    pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+//    pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+    pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+
     pipelineLayoutCreateInfo.flags = 0;
 
     if(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {

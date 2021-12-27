@@ -18,6 +18,10 @@ void RenderPipelineSingleton::Initialize(StarVulkan *vulkan) {
     instance->vulkan = vulkan;
 }
 
+RenderPipeline* RenderPipelineSingleton::BasicPipeline() {
+    return RenderPipelineSingleton::AddPipeline(RenderPipelineSingleton::instance->vulkan->device, RenderPipelineSingleton::instance->vulkan->swapChainExtent, RenderPipelineSingleton::instance->vulkan->descriptorSetLayout, RenderPipelineSingleton::instance->vulkan->renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv");
+}
+
 RenderPipeline *RenderPipelineSingleton::AddPipeline(const char *vertPath, const char *fragPath) {
     return RenderPipelineSingleton::AddPipeline(RenderPipelineSingleton::instance->vulkan->device, RenderPipelineSingleton::instance->vulkan->swapChainExtent, RenderPipelineSingleton::instance->vulkan->descriptorSetLayout, RenderPipelineSingleton::instance->vulkan->renderPass, vertPath, fragPath);
 }
