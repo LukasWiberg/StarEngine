@@ -2,8 +2,9 @@
 // Created by ReSung on 2021-09-10.
 //
 
-#include <cstring>
 #include "RenderPipelineSingleton.hpp"
+
+RenderPipelineSingleton* RenderPipelineSingleton::instance = nullptr;
 
 RenderPipelineSingleton *RenderPipelineSingleton::getInstance() {
     if(RenderPipelineSingleton::instance==nullptr){
@@ -97,9 +98,6 @@ RenderPipelineSingleton::~RenderPipelineSingleton() {
 void RenderPipelineSingleton::Destroy() {
     getInstance()->~RenderPipelineSingleton();
 }
-
-
-RenderPipelineSingleton* RenderPipelineSingleton::instance = nullptr;
 
 RenderPipeline *RenderPipelineSingleton::GetRenderPipeline(int index) {
     return RenderPipelineSingleton::instance->renderPipelines.GetAtIndex(index);

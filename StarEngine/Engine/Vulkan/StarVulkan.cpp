@@ -88,7 +88,7 @@ void StarVulkan::CreateInstance() {
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "ReEngine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    appInfo.apiVersion = VK_API_VERSION_1_2;
     appInfo.pNext = nullptr;
 
     VkInstanceCreateInfo createInfo{};
@@ -513,7 +513,7 @@ void StarVulkan::CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels
 }
 
 void StarVulkan::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandPool commandPool, VkQueue queue) {
-    VkCommandBuffer commandBuffer = BeginSingleTimeCommands(commandPool);
+    VkCommandBuffer commandBuffer = BeginSingleTimeCommand(commandPool);
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -573,11 +573,11 @@ void StarVulkan::TransitionImageLayout(VkImage image, VkFormat format, VkImageLa
             1, &barrier
             );
 
-    EndSingleTimeCommands(commandBuffer, commandPool, queue);
+    EndSingleTimeCommand(commandBuffer, commandPool, queue);
 }
 
 void StarVulkan::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkCommandPool commandPool, VkQueue queue) {
-    VkCommandBuffer commandBuffer = BeginSingleTimeCommands(commandPool);
+    VkCommandBuffer commandBuffer = BeginSingleTimeCommand(commandPool);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -603,7 +603,7 @@ void StarVulkan::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t widt
             &region
             );
 
-    EndSingleTimeCommands(commandBuffer, commandPool, queue);
+    EndSingleTimeCommand(commandBuffer, commandPool, queue);
 }
 
 void StarVulkan::CreateTextureImageView(uint32_t mipLevels, VkImage textureImage, VkImageView &textureImageView) {
@@ -640,7 +640,7 @@ void StarVulkan::GenerateMipmaps(VkImage image, VkFormat imageFormat, int32_t te
         throw std::runtime_error("texture image format does not support linear blitting!");
     }
 
-    VkCommandBuffer commandBuffer = BeginSingleTimeCommands(commandPool);
+    VkCommandBuffer commandBuffer = BeginSingleTimeCommand(commandPool);
 
     VkImageMemoryBarrier barrier;
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -717,7 +717,7 @@ void StarVulkan::GenerateMipmaps(VkImage image, VkFormat imageFormat, int32_t te
                          0, nullptr,
                          1, &barrier);
 
-    EndSingleTimeCommands(commandBuffer, commandPool, queue);
+    EndSingleTimeCommand(commandBuffer, commandPool, queue);
 }
 
 bool StarVulkan::HasStencilComponent(VkFormat format) {
@@ -750,7 +750,7 @@ VkFormat StarVulkan::FindSupportedFormat(VkFormat *candidates, uint32_t candidat
 //endregion
 
 //region Command
-VkCommandBuffer StarVulkan::BeginSingleTimeCommands(VkCommandPool commandPool) const {
+VkCommandBuffer StarVulkan::BeginSingleTimeCommand(VkCommandPool commandPool) const {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -769,7 +769,23 @@ VkCommandBuffer StarVulkan::BeginSingleTimeCommands(VkCommandPool commandPool) c
     return commandBuffer;
 }
 
-void StarVulkan::EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) const {
+void StarVulkan::BeginCommandBuffer(VkCommandBuffer cmdBuffer) const {
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    vkBeginCommandBuffer(cmdBuffer, &beginInfo);
+}
+
+void StarVulkan::EndCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue) const {
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+}
+
+void StarVulkan::EndSingleTimeCommand(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) const {
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -789,7 +805,7 @@ void StarVulkan::CreateCommandPool(VkCommandPool &commandPool) {
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-    poolInfo.flags = 0; // Optional
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // Optional
 
     if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
         printf("failed to create command pool!");
@@ -1173,7 +1189,7 @@ void StarVulkan::CreateIndexBuffers() {
 
 //region Buffer
 void StarVulkan::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-    VkCommandBuffer commandBuffer = BeginSingleTimeCommands(mainCommandPool);
+    VkCommandBuffer commandBuffer = BeginSingleTimeCommand(mainCommandPool);
 
     VkBufferCopy copyRegion;
     copyRegion.size = size;
@@ -1181,7 +1197,7 @@ void StarVulkan::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize
     copyRegion.srcOffset = 0;
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-    EndSingleTimeCommands(commandBuffer, mainCommandPool, graphicsQueue);
+    EndSingleTimeCommand(commandBuffer, mainCommandPool, graphicsQueue);
 }
 //endregion
 
@@ -1293,6 +1309,9 @@ void StarVulkan::CleanupSwapChain() {
 }
 
 void StarVulkan::Cleanup() {
+    for (auto imageView : swapChainImageViews) {
+        vkDestroyImageView(device, imageView, nullptr);
+    }
     vkDeviceWaitIdle(device);
 
     CleanupSwapChain();

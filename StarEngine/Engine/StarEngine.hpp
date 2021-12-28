@@ -34,14 +34,13 @@ private:
     Mouse *mouse;
     uint32_t currentFrame = 0;
     uint32_t iterator = 0;
-    double rotIterator = 0.0f;
 
     //Runtime
     void EngineLoop();
     void DrawFrame(double frameTime);
     void UpdateUniformBuffer(uint32_t currentImage);
 
-    VkCommandBuffer StartRenderPass(VkCommandBuffer cmdBuffer);
+    VkCommandBuffer StartRenderPass(VkCommandBuffer cmdBuffer, uint32_t imageIndex);
     void EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex);
 
 //    uint32_t gameObjectCount = 65536;
@@ -55,7 +54,7 @@ public:
     void StartEngine();
     virtual ~StarEngine();
 
-    void AddVerticeList(const std::vector<Vertex>& vertices);
+    void AddVertexList(const std::vector<Vertex>& vertices);
     void AddIndexList(const std::vector<uint32_t>& indices);
     void RecreateMeshBuffers();
 

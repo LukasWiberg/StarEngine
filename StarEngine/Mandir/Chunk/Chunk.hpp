@@ -15,8 +15,11 @@ private:
     static const int chunkX = 16;
     static const int chunkY = 256;
     static const int chunkZ = 16;
-//    GameObject* blocks[chunkX*chunkY*chunkZ]{};
     Block blocks[chunkX][chunkY][chunkZ]{};
+    void AddModelData(const ModelObject& model, glm::vec3 modelPos);
+    int indexIndex = 0;
+    int vertexIndex = 0;
+    int vertexIndexOffset = 0;
 
 public:
     explicit Chunk(glm::vec3 pos);
