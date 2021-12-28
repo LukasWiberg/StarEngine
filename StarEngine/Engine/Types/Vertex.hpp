@@ -10,11 +10,11 @@
 #include <vulkan/vulkan_core.h>
 
 struct Vertex {
-    glm::vec3 pos{};
-    glm::vec3 color{};
-    glm::vec2 texCoord{};
-
-    Vertex(const glm::vec3 &pos, const glm::vec3 &color, const glm::vec2 &texCoord);
+public:
+    Vertex(const glm::vec3 &inPos, const glm::vec3 &inColor, const glm::vec2 &inTexCoord);
+    glm::vec3 pos;
+    glm::vec3 color;
+    glm::vec2 texCoord;
 
     Vertex() = default;
 

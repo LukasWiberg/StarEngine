@@ -5,10 +5,11 @@
 #ifndef B_OBJ_BLOCK_HPP
 #define B_OBJ_BLOCK_HPP
 
-
-class Block {
-public:
-    Block();
+enum Block {
+    Air,
+    Stone,
+    Dirt,
+    Water
 };
 
 

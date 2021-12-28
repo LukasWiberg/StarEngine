@@ -2,8 +2,9 @@
 // Created by ReSung on 2021-09-10.
 //
 
-#include <cstring>
 #include "RenderPipelineSingleton.hpp"
+
+RenderPipelineSingleton* RenderPipelineSingleton::instance = nullptr;
 
 RenderPipelineSingleton *RenderPipelineSingleton::getInstance() {
     if(RenderPipelineSingleton::instance==nullptr){
@@ -16,6 +17,10 @@ RenderPipelineSingleton *RenderPipelineSingleton::getInstance() {
 void RenderPipelineSingleton::Initialize(StarVulkan *vulkan) {
     instance = new RenderPipelineSingleton();
     instance->vulkan = vulkan;
+}
+
+RenderPipeline* RenderPipelineSingleton::BasicPipeline() {
+    return RenderPipelineSingleton::AddPipeline(RenderPipelineSingleton::instance->vulkan->device, RenderPipelineSingleton::instance->vulkan->swapChainExtent, RenderPipelineSingleton::instance->vulkan->descriptorSetLayout, RenderPipelineSingleton::instance->vulkan->renderPass, "Resources/Shaders/a-vert.spv", "Resources/Shaders/a-frag.spv");
 }
 
 RenderPipeline *RenderPipelineSingleton::AddPipeline(const char *vertPath, const char *fragPath) {
@@ -78,6 +83,9 @@ RenderPipelineSingleton::RenderPipelineSingleton() {
 };
 
 RenderPipelineSingleton::~RenderPipelineSingleton() {
+    for(auto shader : *shaders) {
+        delete(shader);
+    }
     shaders->Clear();
     for(auto renderPipeline : renderPipelines) {
         delete(renderPipeline);
@@ -93,9 +101,6 @@ RenderPipelineSingleton::~RenderPipelineSingleton() {
 void RenderPipelineSingleton::Destroy() {
     getInstance()->~RenderPipelineSingleton();
 }
-
-
-RenderPipelineSingleton* RenderPipelineSingleton::instance = nullptr;
 
 RenderPipeline *RenderPipelineSingleton::GetRenderPipeline(int index) {
     return RenderPipelineSingleton::instance->renderPipelines.GetAtIndex(index);

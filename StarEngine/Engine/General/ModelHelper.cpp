@@ -49,47 +49,44 @@ ModelObject* ModelHelper::CreateCube() {
     auto *ret = new ModelObject();
 
     float texX = 0.0f;
-    float texY = 0.05f;
+    float texY = 0.0f;
 
+    ret->vertices.resize(24);
     //Side 1
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)});
+    ret->vertices[0] = Vertex{glm::vec3(0,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)};
+    ret->vertices[1] = Vertex{glm::vec3(0,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)};
+    ret->vertices[2] = Vertex{glm::vec3(1,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)};
+    ret->vertices[3] = Vertex{glm::vec3(1,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)};
 
     //Side 2
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)});
+    ret->vertices[4] = Vertex{glm::vec3(0,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)};
+    ret->vertices[5] = Vertex{glm::vec3(0,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)};
+    ret->vertices[6] = Vertex{glm::vec3(0,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)};
+    ret->vertices[7] = Vertex{glm::vec3(0,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)};
 
     //Side 3
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX+ 0.05, texY)});
+    ret->vertices[8] = Vertex{glm::vec3(0,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)};
+    ret->vertices[9] = Vertex{glm::vec3(0,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)};
+    ret->vertices[10] = Vertex{glm::vec3(1,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)};
+    ret->vertices[11] = Vertex{glm::vec3(1,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX+ 0.05, texY)};
 
     //Side 4
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)});
-
-    texY = 0.00f;
+    ret->vertices[12] = Vertex{glm::vec3(1,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)};
+    ret->vertices[13] = Vertex{glm::vec3(1,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)};
+    ret->vertices[14] = Vertex{glm::vec3(1,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)};
+    ret->vertices[15] = Vertex{glm::vec3(1,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)};
 
     //Top
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)});
-
-    texY = 0.1f;
+    ret->vertices[16] = Vertex{glm::vec3(0,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)};
+    ret->vertices[17] = Vertex{glm::vec3(0,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)};
+    ret->vertices[18] = Vertex{glm::vec3(1,1,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)};
+    ret->vertices[19] = Vertex{glm::vec3(1,1,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)};
 
     //Bottom
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(0,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)});
-    ret->vertices.emplace_back(Vertex{glm::vec3(1,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)});
+    ret->vertices[20] = Vertex{glm::vec3(0,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY + 0.05)};
+    ret->vertices[21] = Vertex{glm::vec3(0,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY + 0.05)};
+    ret->vertices[22] = Vertex{glm::vec3(1,0,0), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX + 0.05, texY)};
+    ret->vertices[23] = Vertex{glm::vec3(1,0,1), glm::vec3(1.0f,1.0f,1.0f), glm::vec2(texX, texY)};
 
 
 
@@ -108,7 +105,5 @@ ModelObject* ModelHelper::CreateCube() {
             23, 20, 22,
     };
 
-    std::cout << ret->indices.size() << std::endl;
-    std::cout << ret->vertices.size() << std::endl;
     return ret;
 }

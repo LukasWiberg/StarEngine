@@ -46,8 +46,6 @@ private:
     VkInstance instance{};
     VkSurfaceKHR surface{};
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-    uint32_t elementCount = 51200;
 
     TextureObject mainTex{};
 
@@ -211,8 +209,10 @@ public:
     //region Command
     VkCommandPool mainCommandPool{};
 
-    VkCommandBuffer BeginSingleTimeCommands(VkCommandPool commandPool) const;
-    void EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) const;
+    VkCommandBuffer BeginSingleTimeCommand(VkCommandPool commandPool) const;
+    void EndSingleTimeCommand(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) const;
+    static void BeginCommandBuffer(VkCommandBuffer cmdBuffer) ;
+    static void EndCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue) ;
     void CreateCommandPool(VkCommandPool &commandPool);
     void CreateCommandBuffers();
     //endregion
