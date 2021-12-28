@@ -83,6 +83,9 @@ RenderPipelineSingleton::RenderPipelineSingleton() {
 };
 
 RenderPipelineSingleton::~RenderPipelineSingleton() {
+    for(auto shader : *shaders) {
+        delete(shader);
+    }
     shaders->Clear();
     for(auto renderPipeline : renderPipelines) {
         delete(renderPipeline);

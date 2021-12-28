@@ -43,7 +43,6 @@ private:
     VkCommandBuffer StartRenderPass(VkCommandBuffer cmdBuffer, uint32_t imageIndex);
     void EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex);
 
-//    uint32_t gameObjectCount = 65536;
     std::vector<GameObject*> gameObjects;
 
     void GraphicsUpdate(double frameTime);
@@ -52,7 +51,6 @@ private:
 public:
     static StarEngine *GetInstance();
     void StartEngine();
-    virtual ~StarEngine();
 
     void AddVertexList(const std::vector<Vertex>& vertices);
     void AddIndexList(const std::vector<uint32_t>& indices);

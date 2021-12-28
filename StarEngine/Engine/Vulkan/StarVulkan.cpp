@@ -769,14 +769,14 @@ VkCommandBuffer StarVulkan::BeginSingleTimeCommand(VkCommandPool commandPool) co
     return commandBuffer;
 }
 
-void StarVulkan::BeginCommandBuffer(VkCommandBuffer cmdBuffer) const {
+void StarVulkan::BeginCommandBuffer(VkCommandBuffer cmdBuffer) {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     vkBeginCommandBuffer(cmdBuffer, &beginInfo);
 }
 
-void StarVulkan::EndCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue) const {
+void StarVulkan::EndCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue) {
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -1309,10 +1309,9 @@ void StarVulkan::CleanupSwapChain() {
 }
 
 void StarVulkan::Cleanup() {
-    for (auto imageView : swapChainImageViews) {
-        vkDestroyImageView(device, imageView, nullptr);
-    }
+    vkWaitForFences(device, MAX_FRAMES_IN_FLIGHT, inFlightFences.data(), VK_TRUE, UINT64_MAX);
     vkDeviceWaitIdle(device);
+    RenderPipelineSingleton::Destroy();
 
     CleanupSwapChain();
 

@@ -211,8 +211,8 @@ public:
 
     VkCommandBuffer BeginSingleTimeCommand(VkCommandPool commandPool) const;
     void EndSingleTimeCommand(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) const;
-    void BeginCommandBuffer(VkCommandBuffer cmdBuffer) const;
-    void EndCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue) const;
+    static void BeginCommandBuffer(VkCommandBuffer cmdBuffer) ;
+    static void EndCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue) ;
     void CreateCommandPool(VkCommandPool &commandPool);
     void CreateCommandBuffers();
     //endregion

@@ -22,7 +22,7 @@ private:
 
     void ReCreateGraphicsPipelines();
 
-    virtual ~RenderPipelineSingleton();
+    ~RenderPipelineSingleton();
 public:
     static RenderPipelineSingleton *getInstance();
     RenderPipelineSingleton(RenderPipelineSingleton &other) = delete;

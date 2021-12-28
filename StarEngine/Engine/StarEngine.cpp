@@ -61,7 +61,6 @@ void StarEngine::EngineLoop() {
         DrawFrame(c.GetElapsedSeconds());
         iterator++;
     }
-    delete(this);
     vulkan->Cleanup();
 }
 
@@ -220,10 +219,6 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
 void StarEngine::RecreateMeshBuffers() {
     this->vulkan->CreateVertexBuffers();
     this->vulkan->CreateIndexBuffers();
-}
-
-StarEngine::~StarEngine() {
-    RenderPipelineSingleton::Destroy();
 }
 
 void StarEngine::AddIndexList(const std::vector<uint32_t> &indices) {
