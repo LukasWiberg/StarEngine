@@ -53,7 +53,7 @@ public:
     void StartEngine();
 
     void AddVertexList(const std::vector<Vertex>& vertices);
-    void AddIndexList(const std::vector<uint32_t>& indices);
+    void AddIndexList(std::vector<uint32_t>& indices);
     void RecreateMeshBuffers();
 
     Camera *camera;

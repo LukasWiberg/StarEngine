@@ -100,7 +100,7 @@ void StarEngine::DrawFrame(double frameTime) {
     }
     vulkan->imagesInFlight[imageIndex] = vulkan->inFlightFences[currentFrame];
     vkResetCommandBuffer(cmdBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-    vulkan->BeginCommandBuffer(cmdBuffer);
+    StarVulkan::BeginCommandBuffer(cmdBuffer);
 
     StartRenderPass(cmdBuffer, imageIndex);
 
@@ -110,11 +110,9 @@ void StarEngine::DrawFrame(double frameTime) {
     vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetGraphicsPipeline(0));
     vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetRenderPipeline(0)->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
 
-    for(int i = 0; i<this->vulkan->indicesList.size(); i++) {
-        vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &this->vulkan->vertexBuffers[i], offsets);
-        vkCmdBindIndexBuffer(cmdBuffer, this->vulkan->indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(cmdBuffer, this->vulkan->indicesList[i].size(), 1, 0, 0 ,0);
-    }
+    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &this->vulkan->vertexBuffer, offsets);
+    vkCmdBindIndexBuffer(cmdBuffer, this->vulkan->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdDrawIndexed(cmdBuffer, this->vulkan->totalIndices, 1, 0, 0 ,0);
 
     vkCmdEndRenderPass(cmdBuffer);
 
@@ -158,7 +156,7 @@ void StarEngine::EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmdBuffer;
 
-    vulkan->EndCommandBuffer(cmdBuffer, this->vulkan->graphicsQueue);
+    StarVulkan::EndCommandBuffer(cmdBuffer, this->vulkan->graphicsQueue);
 //    this->vulkan->EndSingleTimeCommand(cmdBuffer, this->vulkan->mainCommandPool, this->vulkan->graphicsQueue);
 //    vkEndCommandBuffer(cmdBuffer);
 
@@ -217,11 +215,11 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
 }
 
 void StarEngine::RecreateMeshBuffers() {
-    this->vulkan->CreateVertexBuffers();
-    this->vulkan->CreateIndexBuffers();
+    this->vulkan->CreateVertexBuffer();
+    this->vulkan->CreateIndexBuffer();
 }
 
-void StarEngine::AddIndexList(const std::vector<uint32_t> &indices) {
+void StarEngine::AddIndexList(std::vector<uint32_t> &indices) {
     this->vulkan->indicesList.push_back(indices);
 }
 

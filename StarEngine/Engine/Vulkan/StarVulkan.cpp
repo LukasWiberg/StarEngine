@@ -16,6 +16,7 @@
 #include "../Constants.hpp"
 #include "../StarEngine.hpp"
 #include "RenderPipelineSingleton.hpp"
+#include "../General/ScopedClock.hpp"
 
 StarVulkan::StarVulkan() {
 }
@@ -332,6 +333,7 @@ void StarVulkan::CreateSwapChain() {
     if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
         imageCount = swapChainSupport.capabilities.maxImageCount;
     }
+//    MAX_FRAMES_IN_FLIGHT = imageCount;
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -1121,80 +1123,101 @@ void StarVulkan::CreateTextureSampler() {
     samplerInfo.mipLodBias = 0.0f;
 
     if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create texture sampler!");
+        throw std::runtime_error("Failed to create texture sampler!");
     }
 }
 //endregion
 
 //region VertexBuffer
-void StarVulkan::CreateVertexBuffers() {
-    vertexBuffers.resize(verticesList.size());
-    vertexBuffersMemory.resize(verticesList.size());
-    for(int i = 0; i<verticesList.size(); i++) {
-        auto vertices = verticesList[i];
-        size_t bufferSize = sizeof(vertices[0]) * vertices.size();
+void StarVulkan::CreateVertexBuffer() {
+    size_t bufferSize = 0;
+    size_t verticesSize = 0;
+    for(auto & v : verticesList) {
+        bufferSize += sizeof(v[0]) * v.size();
+        verticesSize += v.size();
+    }
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer,
+                 vertexBufferMemory);
+
+    uint64_t memoryOffset = 0;
+    for(auto vertices : verticesList) {
+        size_t stagingBufferSize = sizeof(vertices[0]) * vertices.size();
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        CreateBuffer(stagingBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
                      stagingBufferMemory);
 
         void *data;
-        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, vertices.data(), bufferSize);
+        vkMapMemory(device, stagingBufferMemory, 0, stagingBufferSize, 0, &data);
+        memcpy(data, vertices.data(), stagingBufferSize);
         vkUnmapMemory(device, stagingBufferMemory);
 
-        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffers[i],
-                 vertexBuffersMemory[i]);
 
 
-        CopyBuffer(stagingBuffer, vertexBuffers[i], bufferSize);
+        CopyBuffer(stagingBuffer, vertexBuffer, stagingBufferSize, memoryOffset);
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
+        memoryOffset+=stagingBufferSize;
     }
 }
 //endregion
 
 //region IndexBuffer
-void StarVulkan::CreateIndexBuffers() {
-    indexBuffers.resize(indicesList.size());
-    indexBuffersMemory.resize(indicesList.size());
+void StarVulkan::CreateIndexBuffer() {
+    size_t bufferSize = 0;
+    totalIndices = 0;
+    for(auto & i : indicesList) {
+        bufferSize += sizeof(i[0]) * i.size();
+        totalIndices+=i.size();
+    }
+
+    uint64_t memoryOffset = 0;
+
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+    uint32_t indexOffset=0;
     for(int i = 0; i<indicesList.size(); i++) {
         auto indices = indicesList[i];
-        size_t bufferSize = sizeof(indices[0]) * indices.size();
+        size_t stagingBufferSize = sizeof(indices[0]) * indices.size();
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        CreateBuffer(stagingBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
                      stagingBufferMemory);
 
         void *data;
-        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, indices.data(), bufferSize);
+        vkMapMemory(device, stagingBufferMemory, 0, stagingBufferSize, 0, &data);
+
+        for(uint32_t &a : indices) {
+            a += indexOffset;
+        }
+
+        indexOffset += verticesList[i].size();
+        memcpy(data, indices.data(), stagingBufferSize);
+
         vkUnmapMemory(device, stagingBufferMemory);
 
-        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffers[i], indexBuffersMemory[i]);
-
-        CopyBuffer(stagingBuffer, indexBuffers[i], bufferSize);
+        CopyBuffer(stagingBuffer, indexBuffer, stagingBufferSize, memoryOffset);
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
+        memoryOffset+=stagingBufferSize;
     }
 }
 //endregion
 
 //region Buffer
-void StarVulkan::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+void StarVulkan::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize dstOffset, VkDeviceSize srcOffset) const {
     VkCommandBuffer commandBuffer = BeginSingleTimeCommand(mainCommandPool);
 
     VkBufferCopy copyRegion;
     copyRegion.size = size;
-    copyRegion.dstOffset = 0;
-    copyRegion.srcOffset = 0;
+    copyRegion.dstOffset = dstOffset;
+    copyRegion.srcOffset = srcOffset;
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
     EndSingleTimeCommand(commandBuffer, mainCommandPool, graphicsQueue);
@@ -1234,7 +1257,6 @@ void StarVulkan::CreateSyncObjects() {
     renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
     imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
-
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -1323,15 +1345,11 @@ void StarVulkan::Cleanup() {
 
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-    for(int i = 0; i<indexBuffers.size(); i++) {
-        vkDestroyBuffer(device, indexBuffers[i], nullptr);
-        vkFreeMemory(device, indexBuffersMemory[i], nullptr);
-    }
+    vkDestroyBuffer(device, indexBuffer, nullptr);
+    vkFreeMemory(device, indexBufferMemory, nullptr);
 
-    for(int i = 0; i<vertexBuffers.size(); i++) {
-        vkDestroyBuffer(device, vertexBuffers[i], nullptr);
-        vkFreeMemory(device, vertexBuffersMemory[i], nullptr);
-    }
+    vkDestroyBuffer(device, vertexBuffer, nullptr);
+    vkFreeMemory(device, vertexBufferMemory, nullptr);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);

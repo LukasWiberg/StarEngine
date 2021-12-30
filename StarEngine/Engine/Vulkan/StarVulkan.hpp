@@ -149,7 +149,7 @@ private:
     //endregion
 
     //region Buffer
-    void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize dstOffset = 0, VkDeviceSize srcOffset = 0) const;
     //endregion
 
     //region UniformBuffer
@@ -194,11 +194,11 @@ public:
     //endregion
 
     //region VertexBuffer
-    void CreateVertexBuffers();
+    void CreateVertexBuffer();
     //endregion
 
     //region IndexBuffer
-    void CreateIndexBuffers();
+    void CreateIndexBuffer();
     //endregion
 
     //region VertexObjects
@@ -221,12 +221,16 @@ public:
     std::vector<VkFramebuffer> swapChainFrameBuffers;
     std::vector<VkDescriptorSet> descriptorSets;
 
-    std::vector<VkBuffer> vertexBuffers;
-    std::vector<VkDeviceMemory> vertexBuffersMemory;
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+//    std::vector<VkBuffer> vertexBuffers;
+//    std::vector<VkDeviceMemory> vertexBuffersMemory;
 
-    std::vector<VkBuffer> indexBuffers;
-    std::vector<VkDeviceMemory> indexBuffersMemory;
-
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
+    uint64_t totalIndices = 0;
+//    std::vector<VkBuffer> indexBuffers;
+//    std::vector<VkDeviceMemory> indexBuffersMemory;
 
     VkDescriptorSetLayout descriptorSetLayout{};
 
