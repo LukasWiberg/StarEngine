@@ -6,6 +6,14 @@
 #define B_OBJ_BLOCKMESH_HPP
 
 #include "../../Engine/General/ModelHelper.hpp"
+#include "../../Engine/General/Dictionary.hpp"
+#include "Block.hpp"
+
+enum FaceDirection {
+    Top = 0,
+    Side = 1,
+    Bottom = 2
+};
 
 class BlockMesh {
 private:
@@ -17,6 +25,7 @@ private:
     static ModelObject planeZPos();
     static ModelObject planeYNeg();
     static ModelObject planeYPos();
+    Dictionary<Block, glm::vec2*> textureOffsets;
 
     ModelObject planeXPosMesh = planeXPos();
     ModelObject planeXNegMesh = planeXNeg();
@@ -33,6 +42,7 @@ public:
     static const ModelObject& PlaneYNeg();
     static const ModelObject& PlaneZPos();
     static const ModelObject& PlaneZNeg();
+    static const glm::vec2& GetTextureOffset(Block block, FaceDirection direction);
 
 //    static void Initialize();
 };

@@ -9,7 +9,7 @@
 
 Mandir::Mandir(StarEngine* pEngine) {
     this->engine = pEngine;
-    int chunksDiameter = 10;
+    int chunksDiameter = 2;
     {
         ScopedClock c = ScopedClock(" ", false, true);
         int chunkCount = 0;

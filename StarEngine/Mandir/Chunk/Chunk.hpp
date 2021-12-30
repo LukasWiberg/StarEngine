@@ -16,7 +16,7 @@ private:
     static const int chunkY = 256;
     static const int chunkZ = 16;
     Block blocks[chunkX][chunkY][chunkZ]{};
-    void AddModelData(const ModelObject& model, glm::vec3 modelPos);
+    void AddModelData(const ModelObject& model, glm::vec3 modelPos, glm::vec2 textureOffset);
     int indexIndex = 0;
     int vertexIndex = 0;
     int vertexIndexOffset = 0;

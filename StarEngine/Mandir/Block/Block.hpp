@@ -9,6 +9,7 @@ enum Block {
     Air,
     Stone,
     Dirt,
+    Grass,
     Water
 };
 

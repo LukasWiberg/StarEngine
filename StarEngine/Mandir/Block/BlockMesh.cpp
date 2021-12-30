@@ -14,12 +14,9 @@ BlockMesh *BlockMesh::getInstance() {
 }
 
 BlockMesh::BlockMesh() {
-    this->planeXPosMesh = planeXPos();
-    this->planeXNegMesh = planeXNeg();
-    this->planeYPosMesh = planeYPos();
-    this->planeYNegMesh = planeYNeg();
-    this->planeZPosMesh = planeZPos();
-    this->planeZNegMesh = planeZNeg();
+    textureOffsets.Add(Block::Grass, new glm::vec2[3]{{0,0.1f}, {0,0.15f}, {0,0.05f}});
+    textureOffsets.Add(Block::Dirt, new glm::vec2[3]{{0,0.05f}, {0,0.05f}, {0,0.05f}});
+    textureOffsets.Add(Block::Stone, new glm::vec2[3]{{0,0}, {0,0}, {0,0}});
 }
 
 
@@ -126,4 +123,8 @@ const ModelObject& BlockMesh::PlaneZPos() {
 }
 const ModelObject& BlockMesh::PlaneZNeg() {
     return BlockMesh::getInstance()->planeZNegMesh;
+}
+
+const glm::vec2 &BlockMesh::GetTextureOffset(Block block, FaceDirection direction) {
+    return BlockMesh::getInstance()->textureOffsets.Get(block)[direction];
 }
