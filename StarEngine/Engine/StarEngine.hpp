@@ -34,6 +34,7 @@ private:
     Mouse *mouse;
     uint32_t currentFrame = 0;
     uint32_t iterator = 0;
+    uint64_t totalFrametime = 0;
 
     //Runtime
     void EngineLoop();

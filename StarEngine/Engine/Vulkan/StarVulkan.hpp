@@ -22,14 +22,6 @@ const bool enableValidationLayers = true;
 class StarVulkan {
 private:
     //Structs
-    struct QueueFamilyIndices {
-        std::optional<uint32_t> graphicsFamily;
-        std::optional<uint32_t> presentFamily;
-
-        [[nodiscard]] bool isComplete() const {
-            return graphicsFamily.has_value() && presentFamily.has_value();
-        }
-    };
     struct SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR capabilities;
         std::vector<VkSurfaceFormatKHR> formats;
@@ -85,7 +77,6 @@ private:
     //region PhysicalDevice
     VkPhysicalDevice PickPhysicalDevice();
     bool IsDeviceSuitable(VkPhysicalDevice physDevice);
-    StarVulkan::QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physDevice);
     bool CheckDeviceExtensionSupport(VkPhysicalDevice physDevice);
     StarVulkan::SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physDevice);
     //endregion
@@ -106,19 +97,14 @@ private:
     StarVulkan::TextureObject CreateTexture(char *path, bool generateMipMaps, VkCommandPool commandPool, VkQueue queue);
     void CreateTextureImage(char* path, bool generateMipmaps, uint32_t& mipLevels, VkImage& textureImage, VkDeviceMemory& textureImageMemory, VkCommandPool commandPool, VkQueue queue);
     void CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage *image, VkDeviceMemory *imageMemory);
-    void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkCommandPool commandPool, VkQueue queue);
+    void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkCommandPool commandPool, VkQueue queue) const;
     void CreateTextureImageView(uint32_t mipLevels, VkImage textureImage, VkImageView &textureImageView);
     VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) const;
     void GenerateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels, VkCommandPool commandPool, VkQueue queue);
     static bool HasStencilComponent(VkFormat format);
-    void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandPool commandPool, VkQueue queue);
+    void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandPool commandPool, VkQueue queue) const;
     VkFormat FindDepthFormat();
     VkFormat FindSupportedFormat(VkFormat *candidates, uint32_t candidateCount, VkImageTiling tiling, VkFormatFeatureFlags features);
-    //endregion
-
-    //region General
-    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-    uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     //endregion
 
     //region DescriptorSets
@@ -148,10 +134,6 @@ private:
     void CreateTextureSampler();
     //endregion
 
-    //region Buffer
-    void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize dstOffset = 0, VkDeviceSize srcOffset = 0) const;
-    //endregion
-
     //region UniformBuffer
     void CreateUniformBuffers();
     //endregion
@@ -159,6 +141,8 @@ private:
     //region SyncObjects
     void CreateSyncObjects();
     //endregion
+
+    void CreateCommandBuffers();
 
     static void FramebufferResizeCallback(GLFWwindow* glfwWindow, int width, int height);
 
@@ -209,12 +193,6 @@ public:
     //region Command
     VkCommandPool mainCommandPool{};
 
-    VkCommandBuffer BeginSingleTimeCommand(VkCommandPool commandPool) const;
-    void EndSingleTimeCommand(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) const;
-    static void BeginCommandBuffer(VkCommandBuffer cmdBuffer) ;
-    static void EndCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue) ;
-    void CreateCommandPool(VkCommandPool &commandPool);
-    void CreateCommandBuffers();
     //endregion
 
     VkRenderPass renderPass{};

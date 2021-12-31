@@ -9,6 +9,7 @@
 #include "Constants.hpp"
 #include "General/ScopedClock.hpp"
 #include "Vulkan/RenderPipelineSingleton.hpp"
+#include "Vulkan/Helpers/VulkanCommandHelper.hpp"
 
 
 StarEngine *StarEngine::GetInstance() {
@@ -60,7 +61,9 @@ void StarEngine::EngineLoop() {
         c.Reset();
         DrawFrame(c.GetElapsedSeconds());
         iterator++;
+        totalFrametime+=e.GetElapsedNanoSeconds()/1000000;
     }
+    std::cout << "Average frametime: " << totalFrametime/iterator << "ms" << std::endl;
     vulkan->Cleanup();
 }
 
@@ -100,7 +103,7 @@ void StarEngine::DrawFrame(double frameTime) {
     }
     vulkan->imagesInFlight[imageIndex] = vulkan->inFlightFences[currentFrame];
     vkResetCommandBuffer(cmdBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-    StarVulkan::BeginCommandBuffer(cmdBuffer);
+    VulkanCommandHelper::BeginCommandBuffer(cmdBuffer);
 
     StartRenderPass(cmdBuffer, imageIndex);
 
@@ -156,7 +159,7 @@ void StarEngine::EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmdBuffer;
 
-    StarVulkan::EndCommandBuffer(cmdBuffer, this->vulkan->graphicsQueue);
+    VulkanCommandHelper::EndCommandBuffer(cmdBuffer, this->vulkan->graphicsQueue);
 //    this->vulkan->EndSingleTimeCommand(cmdBuffer, this->vulkan->mainCommandPool, this->vulkan->graphicsQueue);
 //    vkEndCommandBuffer(cmdBuffer);
 

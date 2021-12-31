@@ -17,6 +17,8 @@
 #include "../StarEngine.hpp"
 #include "RenderPipelineSingleton.hpp"
 #include "../General/ScopedClock.hpp"
+#include "Helpers/VulkanHelper.hpp"
+#include "Helpers/VulkanCommandHelper.hpp"
 
 StarVulkan::StarVulkan() {
 }
@@ -32,7 +34,7 @@ void StarVulkan::Initialize() {
 
     CreateRenderPass();
     CreateDescriptorSetLayout();
-    CreateCommandPool(mainCommandPool);
+    VulkanCommandHelper::CreateCommandPool(device, physicalDevice, mainCommandPool, surface);
     CreateDepthResources();
     CreateFrameBuffers();
 
@@ -182,7 +184,7 @@ VkPhysicalDevice StarVulkan::PickPhysicalDevice() {
 
 
 bool StarVulkan::IsDeviceSuitable(VkPhysicalDevice physDevice) {
-    QueueFamilyIndices qfIndices = FindQueueFamilies(physDevice);
+    QueueFamilyIndices qfIndices = VulkanHelper::FindQueueFamilies(physDevice, surface);
 
     bool extensionsSupported = CheckDeviceExtensionSupport(physDevice);
 
@@ -196,39 +198,6 @@ bool StarVulkan::IsDeviceSuitable(VkPhysicalDevice physDevice) {
     vkGetPhysicalDeviceFeatures(physDevice, &supportedFeatures);
 
     return qfIndices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
-}
-
-
-StarVulkan::QueueFamilyIndices StarVulkan::FindQueueFamilies(VkPhysicalDevice physDevice) {
-    StarVulkan::QueueFamilyIndices qfIndices{};
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, nullptr);
-
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, queueFamilies.data());
-
-    int i = 0;
-    for (const auto& queueFamily : queueFamilies) {
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            qfIndices.graphicsFamily = i;
-        }
-
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(physDevice, i, surface, &presentSupport);
-
-        if (presentSupport) {
-            qfIndices.presentFamily = i;
-        }
-
-        if (qfIndices.isComplete()) {
-            break;
-        }
-
-        i++;
-    }
-
-    return qfIndices;
 }
 
 bool StarVulkan::CheckDeviceExtensionSupport(VkPhysicalDevice physDevice) {
@@ -276,7 +245,7 @@ StarVulkan::SwapChainSupportDetails StarVulkan::QuerySwapChainSupport(VkPhysical
 //region LogicalDevice
 
 void StarVulkan::CreateLogicalDevice() {
-    QueueFamilyIndices qfIndices = FindQueueFamilies(physicalDevice);
+    QueueFamilyIndices qfIndices = VulkanHelper::FindQueueFamilies(physicalDevice, surface);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {qfIndices.graphicsFamily.value(), qfIndices.presentFamily.value()};
@@ -346,7 +315,7 @@ void StarVulkan::CreateSwapChain() {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices qfIndices = FindQueueFamilies(physicalDevice);
+    QueueFamilyIndices qfIndices = VulkanHelper::FindQueueFamilies(physicalDevice, surface);
     uint32_t queueFamilyIndices[] = {qfIndices.graphicsFamily.value(), qfIndices.presentFamily.value()};
 
     if (qfIndices.graphicsFamily != qfIndices.presentFamily) {
@@ -452,7 +421,7 @@ void StarVulkan::CreateTextureImage(char* path, bool generateMipmaps, uint32_t& 
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    CreateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    VulkanHelper::CreateBuffer(device, physicalDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
@@ -505,7 +474,7 @@ void StarVulkan::CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
+    allocInfo.memoryTypeIndex = VulkanHelper::FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
 
     if (vkAllocateMemory(device, &allocInfo, nullptr, imageMemory) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate image memory!");
@@ -514,8 +483,8 @@ void StarVulkan::CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels
     vkBindImageMemory(device, *image, *imageMemory, 0);
 }
 
-void StarVulkan::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandPool commandPool, VkQueue queue) {
-    VkCommandBuffer commandBuffer = BeginSingleTimeCommand(commandPool);
+void StarVulkan::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandPool commandPool, VkQueue queue) const {
+    VkCommandBuffer commandBuffer = VulkanCommandHelper::BeginSingleTimeCommand(device, commandPool);
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -575,11 +544,11 @@ void StarVulkan::TransitionImageLayout(VkImage image, VkFormat format, VkImageLa
             1, &barrier
             );
 
-    EndSingleTimeCommand(commandBuffer, commandPool, queue);
+    VulkanCommandHelper::EndSingleTimeCommand(device, commandBuffer, commandPool, queue);
 }
 
-void StarVulkan::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkCommandPool commandPool, VkQueue queue) {
-    VkCommandBuffer commandBuffer = BeginSingleTimeCommand(commandPool);
+void StarVulkan::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkCommandPool commandPool, VkQueue queue) const {
+    VkCommandBuffer commandBuffer = VulkanCommandHelper::BeginSingleTimeCommand(device, commandPool);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -605,7 +574,7 @@ void StarVulkan::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t widt
             &region
             );
 
-    EndSingleTimeCommand(commandBuffer, commandPool, queue);
+    VulkanCommandHelper::EndSingleTimeCommand(device, commandBuffer, commandPool, queue);
 }
 
 void StarVulkan::CreateTextureImageView(uint32_t mipLevels, VkImage textureImage, VkImageView &textureImageView) {
@@ -642,7 +611,7 @@ void StarVulkan::GenerateMipmaps(VkImage image, VkFormat imageFormat, int32_t te
         throw std::runtime_error("texture image format does not support linear blitting!");
     }
 
-    VkCommandBuffer commandBuffer = BeginSingleTimeCommand(commandPool);
+    VkCommandBuffer commandBuffer = VulkanCommandHelper::BeginSingleTimeCommand(device, commandPool);
 
     VkImageMemoryBarrier barrier;
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -719,7 +688,7 @@ void StarVulkan::GenerateMipmaps(VkImage image, VkFormat imageFormat, int32_t te
                          0, nullptr,
                          1, &barrier);
 
-    EndSingleTimeCommand(commandBuffer, commandPool, queue);
+    VulkanCommandHelper::EndSingleTimeCommand(device, commandBuffer, commandPool, queue);
 }
 
 bool StarVulkan::HasStencilComponent(VkFormat format) {
@@ -751,128 +720,7 @@ VkFormat StarVulkan::FindSupportedFormat(VkFormat *candidates, uint32_t candidat
 }
 //endregion
 
-//region Command
-VkCommandBuffer StarVulkan::BeginSingleTimeCommand(VkCommandPool commandPool) const {
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = commandPool;
-    allocInfo.commandBufferCount = 1;
-
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    return commandBuffer;
-}
-
-void StarVulkan::BeginCommandBuffer(VkCommandBuffer cmdBuffer) {
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-    vkBeginCommandBuffer(cmdBuffer, &beginInfo);
-}
-
-void StarVulkan::EndCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue) {
-    vkEndCommandBuffer(commandBuffer);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-}
-
-void StarVulkan::EndSingleTimeCommand(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue) const {
-    vkEndCommandBuffer(commandBuffer);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-
-    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);
-
-    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
-}
-
-void StarVulkan::CreateCommandPool(VkCommandPool &commandPool) {
-    QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice);
-
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // Optional
-
-    if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
-        printf("failed to create command pool!");
-    }
-}
-
-void StarVulkan::CreateCommandBuffers() {
-    commandBuffers.resize(swapChainFrameBuffers.size());
-
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = mainCommandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
-
-    if(vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate command buffers!");
-    }
-}
-//endregion
-
-//region General
-void StarVulkan::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create buffer!");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
-
-    vkBindBufferMemory(device, buffer, bufferMemory, 0);
-}
-
-uint32_t StarVulkan::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
-
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-            return i;
-        }
-    }
-
-    throw std::runtime_error("Failed to find suitable memory type!");
-}
-//endregion
-
 //region DescriptorSets
-
-
 void StarVulkan::CreateDescriptorSetLayout() {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
@@ -1136,7 +984,7 @@ void StarVulkan::CreateVertexBuffer() {
         bufferSize += sizeof(v[0]) * v.size();
         verticesSize += v.size();
     }
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+    VulkanHelper::CreateBuffer(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer,
                  vertexBufferMemory);
 
@@ -1146,7 +994,7 @@ void StarVulkan::CreateVertexBuffer() {
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        CreateBuffer(stagingBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VulkanHelper::CreateBuffer(device, physicalDevice, stagingBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
                      stagingBufferMemory);
 
@@ -1157,7 +1005,7 @@ void StarVulkan::CreateVertexBuffer() {
 
 
 
-        CopyBuffer(stagingBuffer, vertexBuffer, stagingBufferSize, memoryOffset);
+        VulkanHelper::CopyBuffer(device, graphicsQueue, mainCommandPool, stagingBuffer, vertexBuffer, stagingBufferSize, memoryOffset);
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -1177,7 +1025,7 @@ void StarVulkan::CreateIndexBuffer() {
 
     uint64_t memoryOffset = 0;
 
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+    VulkanHelper::CreateBuffer(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
     uint32_t indexOffset=0;
     for(int i = 0; i<indicesList.size(); i++) {
@@ -1185,7 +1033,7 @@ void StarVulkan::CreateIndexBuffer() {
         size_t stagingBufferSize = sizeof(indices[0]) * indices.size();
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        CreateBuffer(stagingBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VulkanHelper::CreateBuffer(device, physicalDevice, stagingBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
                      stagingBufferMemory);
 
@@ -1201,26 +1049,12 @@ void StarVulkan::CreateIndexBuffer() {
 
         vkUnmapMemory(device, stagingBufferMemory);
 
-        CopyBuffer(stagingBuffer, indexBuffer, stagingBufferSize, memoryOffset);
+        VulkanHelper::CopyBuffer(device, graphicsQueue, mainCommandPool, stagingBuffer, indexBuffer, stagingBufferSize, memoryOffset);
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
         memoryOffset+=stagingBufferSize;
     }
-}
-//endregion
-
-//region Buffer
-void StarVulkan::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize dstOffset, VkDeviceSize srcOffset) const {
-    VkCommandBuffer commandBuffer = BeginSingleTimeCommand(mainCommandPool);
-
-    VkBufferCopy copyRegion;
-    copyRegion.size = size;
-    copyRegion.dstOffset = dstOffset;
-    copyRegion.srcOffset = srcOffset;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-    EndSingleTimeCommand(commandBuffer, mainCommandPool, graphicsQueue);
 }
 //endregion
 
@@ -1232,12 +1066,12 @@ void StarVulkan::CreateUniformBuffers() {
     uniformBuffersMemory.resize(swapChainImages.size());
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
-        CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+        VulkanHelper::CreateBuffer(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
     }
 
 
     VkDeviceSize bufferSizeRes = sizeof(GeneralData);
-    CreateBuffer(bufferSizeRes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, generalDataBuffer, generalDataBufferMemory);
+    VulkanHelper::CreateBuffer(device, physicalDevice, bufferSizeRes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, generalDataBuffer, generalDataBufferMemory);
 
     GeneralData generalData{};
     int x, y;
@@ -1273,6 +1107,20 @@ void StarVulkan::CreateSyncObjects() {
     }
 }
 //endregion
+
+void StarVulkan::CreateCommandBuffers() {
+    commandBuffers.resize(swapChainFrameBuffers.size());
+
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = mainCommandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
+
+    if(vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate command buffers!");
+    }
+}
 
 //region Cleanup/Recreate
 void StarVulkan::RecreateSwapChain() {
