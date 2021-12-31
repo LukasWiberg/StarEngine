@@ -13,14 +13,25 @@
 class MeshObject {
 private:
     void CreateVertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue queue, VkCommandPool commandPool);
+    void CreateIndexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue queue, VkCommandPool commandPool);
+
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
+    VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
 
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+    VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
+
+    VkDevice device = VK_NULL_HANDLE;
+
+public:
+    MeshObject(std::vector<Vertex> vertices, std::vector<uint32_t> indices, VkDevice device,
+               VkPhysicalDevice physicalDevice, VkQueue queue, VkCommandPool commandPool);
+    ~MeshObject();
+
+    VkBuffer vertexBuffer = VK_NULL_HANDLE;
+    VkBuffer indexBuffer = VK_NULL_HANDLE;
+    size_t indexCount;
 };
 
 

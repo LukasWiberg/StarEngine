@@ -26,15 +26,13 @@ Mandir::Mandir(StarEngine* pEngine) {
         ScopedClock c = ScopedClock("Adding vertex and index lists in: ", false, true);
         uint64_t t = 0;
         for(auto& chunk : chunks) {
-            this->engine->AddVertexList(chunk->vertices);
-            this->engine->AddIndexList(chunk->indices);
+            this->engine->AddMesh(chunk->vertices, chunk->indices);
             t+=chunk->indices.size();
         }
     }
 
     {
         ScopedClock c = ScopedClock("RecreateMeshBuffers in: ", false, true);
-        this->engine->RecreateMeshBuffers();
     }
 }
 

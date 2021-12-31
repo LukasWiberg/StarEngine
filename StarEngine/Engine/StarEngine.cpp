@@ -19,7 +19,6 @@ StarEngine *StarEngine::GetInstance() {
 };
 
 StarEngine::StarEngine() {
-    srand((unsigned)time(nullptr));
     vulkan = new StarVulkan();
     RenderPipelineSingleton::Initialize(vulkan);
 
@@ -68,15 +67,15 @@ void StarEngine::EngineLoop() {
 }
 
 void StarEngine::LogicUpdate(double frameTime) {
-    for(int i = 0; i<gameObjects.size(); i++) {
-        gameObjects[i]->LogicUpdate(frameTime);
+    for(auto & gameObject : gameObjects) {
+        gameObject->LogicUpdate(frameTime);
     }
 }
 
 void StarEngine::GraphicsUpdate(double frameTime) {
-    for(int i = 0; i<gameObjects.size(); i++) {
-        gameObjects[i]->GraphicsUpdate(frameTime);
-        gameObjects[i]->UpdateTransform();
+    for(auto & gameObject : gameObjects) {
+        gameObject->GraphicsUpdate(frameTime);
+        gameObject->UpdateTransform();
     }
 }
 
@@ -113,9 +112,11 @@ void StarEngine::DrawFrame(double frameTime) {
     vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetGraphicsPipeline(0));
     vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetRenderPipeline(0)->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
 
-    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &this->vulkan->vertexBuffer, offsets);
-    vkCmdBindIndexBuffer(cmdBuffer, this->vulkan->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdDrawIndexed(cmdBuffer, this->vulkan->totalIndices, 1, 0, 0 ,0);
+    for(auto meshObject : vulkan->meshObjects) {
+        vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &meshObject->vertexBuffer, offsets);
+        vkCmdBindIndexBuffer(cmdBuffer, meshObject->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(cmdBuffer, meshObject->indexCount, 1, 0, 0, 0);
+    }
 
     vkCmdEndRenderPass(cmdBuffer);
 
@@ -160,8 +161,6 @@ void StarEngine::EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex
     submitInfo.pCommandBuffers = &cmdBuffer;
 
     VulkanCommandHelper::EndCommandBuffer(cmdBuffer, this->vulkan->graphicsQueue);
-//    this->vulkan->EndSingleTimeCommand(cmdBuffer, this->vulkan->mainCommandPool, this->vulkan->graphicsQueue);
-//    vkEndCommandBuffer(cmdBuffer);
 
     VkSemaphore signalSemaphores[] = {vulkan->renderFinishedSemaphores[currentFrame]};
     submitInfo.signalSemaphoreCount = 1;
@@ -200,8 +199,6 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
     static auto startTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
 
     UniformBufferObject ubo{};
     ubo.proj = glm::perspective(glm::radians(90.0f), (float) vulkan->swapChainExtent.width / (float) vulkan->swapChainExtent.height, 0.1f, 1000.0f);
@@ -216,17 +213,6 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
     memcpy(data, &ubo, sizeof(ubo));
     vkUnmapMemory(vulkan->device, vulkan->uniformBuffersMemory[currentImage]);
 }
-
-void StarEngine::RecreateMeshBuffers() {
-    this->vulkan->CreateVertexBuffer();
-    this->vulkan->CreateIndexBuffer();
+void StarEngine::AddMesh(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices) {
+    vulkan->meshObjects.push_back(new MeshObject(vertices, indices, vulkan->device, vulkan->physicalDevice, vulkan->graphicsQueue, vulkan->mainCommandPool));
 }
-
-void StarEngine::AddIndexList(std::vector<uint32_t> &indices) {
-    this->vulkan->indicesList.push_back(indices);
-}
-
-void StarEngine::AddVertexList(const std::vector<Vertex>& vertices) {
-    this->vulkan->verticesList.push_back(vertices);
-}
-

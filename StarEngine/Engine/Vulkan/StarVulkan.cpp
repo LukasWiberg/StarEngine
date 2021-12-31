@@ -976,88 +976,6 @@ void StarVulkan::CreateTextureSampler() {
 }
 //endregion
 
-//region VertexBuffer
-void StarVulkan::CreateVertexBuffer() {
-    size_t bufferSize = 0;
-    size_t verticesSize = 0;
-    for(auto & v : verticesList) {
-        bufferSize += sizeof(v[0]) * v.size();
-        verticesSize += v.size();
-    }
-    VulkanHelper::CreateBuffer(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer,
-                 vertexBufferMemory);
-
-    uint64_t memoryOffset = 0;
-    for(auto vertices : verticesList) {
-        size_t stagingBufferSize = sizeof(vertices[0]) * vertices.size();
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        VulkanHelper::CreateBuffer(device, physicalDevice, stagingBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
-                     stagingBufferMemory);
-
-        void *data;
-        vkMapMemory(device, stagingBufferMemory, 0, stagingBufferSize, 0, &data);
-        memcpy(data, vertices.data(), stagingBufferSize);
-        vkUnmapMemory(device, stagingBufferMemory);
-
-
-
-        VulkanHelper::CopyBuffer(device, graphicsQueue, mainCommandPool, stagingBuffer, vertexBuffer, stagingBufferSize, memoryOffset);
-
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
-        memoryOffset+=stagingBufferSize;
-    }
-}
-//endregion
-
-//region IndexBuffer
-void StarVulkan::CreateIndexBuffer() {
-    size_t bufferSize = 0;
-    totalIndices = 0;
-    for(auto & i : indicesList) {
-        bufferSize += sizeof(i[0]) * i.size();
-        totalIndices+=i.size();
-    }
-
-    uint64_t memoryOffset = 0;
-
-    VulkanHelper::CreateBuffer(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-    uint32_t indexOffset=0;
-    for(int i = 0; i<indicesList.size(); i++) {
-        auto indices = indicesList[i];
-        size_t stagingBufferSize = sizeof(indices[0]) * indices.size();
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        VulkanHelper::CreateBuffer(device, physicalDevice, stagingBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
-                     stagingBufferMemory);
-
-        void *data;
-        vkMapMemory(device, stagingBufferMemory, 0, stagingBufferSize, 0, &data);
-
-        for(uint32_t &a : indices) {
-            a += indexOffset;
-        }
-
-        indexOffset += verticesList[i].size();
-        memcpy(data, indices.data(), stagingBufferSize);
-
-        vkUnmapMemory(device, stagingBufferMemory);
-
-        VulkanHelper::CopyBuffer(device, graphicsQueue, mainCommandPool, stagingBuffer, indexBuffer, stagingBufferSize, memoryOffset);
-
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
-        memoryOffset+=stagingBufferSize;
-    }
-}
-//endregion
-
 //region UniformBuffer
 void StarVulkan::CreateUniformBuffers() {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
@@ -1193,11 +1111,9 @@ void StarVulkan::Cleanup() {
 
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-    vkDestroyBuffer(device, indexBuffer, nullptr);
-    vkFreeMemory(device, indexBufferMemory, nullptr);
-
-    vkDestroyBuffer(device, vertexBuffer, nullptr);
-    vkFreeMemory(device, vertexBufferMemory, nullptr);
+    for(auto meshObject : meshObjects) {
+        delete(meshObject);
+    }
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);

@@ -12,6 +12,7 @@
 #include "../Types/UniformBuffer.hpp"
 #include "../General/ModelHelper.hpp"
 #include "RenderPipeline.hpp"
+#include "../Mesh/MeshObject.hpp"
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
@@ -36,8 +37,6 @@ private:
 
     //Objects
     VkInstance instance{};
-    VkSurfaceKHR surface{};
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
     TextureObject mainTex{};
 
@@ -61,6 +60,7 @@ private:
     VkImageView depthImageView{};
     //endregion
 
+    VkSurfaceKHR surface{};
 
     //Configuration
     const std::vector<const char*> validationLayers = {
@@ -177,19 +177,6 @@ public:
     void Cleanup();
     //endregion
 
-    //region VertexBuffer
-    void CreateVertexBuffer();
-    //endregion
-
-    //region IndexBuffer
-    void CreateIndexBuffer();
-    //endregion
-
-    //region VertexObjects
-    std::vector<std::vector<Vertex>> verticesList;
-    //endregion
-    std::vector<std::vector<uint32_t>> indicesList;
-
     //region Command
     VkCommandPool mainCommandPool{};
 
@@ -199,22 +186,14 @@ public:
     std::vector<VkFramebuffer> swapChainFrameBuffers;
     std::vector<VkDescriptorSet> descriptorSets;
 
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-//    std::vector<VkBuffer> vertexBuffers;
-//    std::vector<VkDeviceMemory> vertexBuffersMemory;
-
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
-    uint64_t totalIndices = 0;
-//    std::vector<VkBuffer> indexBuffers;
-//    std::vector<VkDeviceMemory> indexBuffersMemory;
+    std::vector<MeshObject*> meshObjects;
 
     VkDescriptorSetLayout descriptorSetLayout{};
 
 
     void Initialize();
     //endregion
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 };
 
 
