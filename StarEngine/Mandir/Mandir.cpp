@@ -5,17 +5,19 @@
 #include "Mandir.hpp"
 #include "../Engine/General/ScopedClock.hpp"
 #include "Block/BlockMesh.hpp"
+#include "../Engine/Noise/OpenSimplex2S.hpp"
 
 
 Mandir::Mandir(StarEngine* pEngine) {
     this->engine = pEngine;
+    worldGeneratorNoiseObject = new NoiseObject(123543);
     int chunksDiameter = 10;
     {
         ScopedClock c = ScopedClock(" ", false, true);
         int chunkCount = 0;
         for(int x = -chunksDiameter; x<=chunksDiameter; x++) {
             for(int z = -chunksDiameter; z <= chunksDiameter; z++) {
-                chunks.push_back(new Chunk(glm::vec3(x, -1, z)));
+                chunks.push_back(new Chunk(worldGeneratorNoiseObject, glm::vec3(x, -1, z)));
                 chunkCount++;
             }
         }
@@ -24,15 +26,14 @@ Mandir::Mandir(StarEngine* pEngine) {
 
     {
         ScopedClock c = ScopedClock("Adding vertex and index lists in: ", false, true);
-        uint64_t t = 0;
+//        uint32_t t = 0;
         for(auto& chunk : chunks) {
-            this->engine->AddMesh(chunk->vertices, chunk->indices);
-            t+=chunk->indices.size();
+            auto mesh = this->engine->AddMesh(chunk->vertices, chunk->indices);
+//            t++;
+//            if(t%3==0) {
+//                mesh->visible = false;
+//            }
         }
-    }
-
-    {
-        ScopedClock c = ScopedClock("RecreateMeshBuffers in: ", false, true);
     }
 }
 

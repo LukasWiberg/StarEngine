@@ -9,6 +9,7 @@
 #include "glm/vec2.hpp"
 #include "../../Engine/Object/GameObject.hpp"
 #include "../Block/Block.hpp"
+#include "../../Engine/Noise/NoiseObject.hpp"
 
 class Chunk {
 private:
@@ -22,7 +23,7 @@ private:
     int vertexIndexOffset = 0;
 
 public:
-    explicit Chunk(glm::vec3 pos);
+    explicit Chunk(NoiseObject* noiseObject, glm::vec3 pos);
     glm::vec3 pos{};
 
     std::vector<Vertex> vertices;

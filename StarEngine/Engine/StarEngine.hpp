@@ -53,7 +53,7 @@ public:
     static StarEngine *GetInstance();
     void StartEngine();
 
-    void AddMesh(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
+    MeshObject* AddMesh(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
 
     Camera *camera;
     bool framebufferResized = false;

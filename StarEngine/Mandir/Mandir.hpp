@@ -8,11 +8,13 @@
 class Mandir;
 #include "../Engine/StarEngine.hpp"
 #include "Chunk/Chunk.hpp"
+#include "../Engine/Noise/NoiseObject.hpp"
 
 class Mandir {
 private:
     StarEngine *engine;
     std::vector<Chunk*> chunks;
+    NoiseObject* worldGeneratorNoiseObject;
 
 public:
     explicit Mandir(StarEngine *pEngine);

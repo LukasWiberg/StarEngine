@@ -15,7 +15,7 @@ struct MeshData {
     std::vector<ModelObject> models;
 };
 
-Chunk::Chunk(glm::vec3 pos) {
+Chunk::Chunk(NoiseObject* noiseObject,  glm::vec3 pos) {
     this->pos = pos;
     std::vector<MeshData> meshData;
     uint32_t visibleFaces = 0;
@@ -25,25 +25,31 @@ Chunk::Chunk(glm::vec3 pos) {
         for(int x = 0; x<chunkX; x++) {
             for (int y = 0; y < chunkY; y++) {
                 for (int z = 0; z < chunkZ; z++) {
-                    blocks[x][y][z] = (x==8 || y%5==0)
+                    double noiseVal = noiseObject->Sample3D(x,y,z);
+//                    blocks[x][y][z] = noiseVal>0.45
+//                            ?Block::Air
+//                            :noiseVal>0.15
+//                                ?Block::Dirt
+//                                :Block::Stone;
+                    blocks[x][y][z] = y>200
                             ?Block::Air
-                            :y>200
+                            :y>150
                                 ?Block::Dirt
                                 :Block::Stone;
                 }
             }
         }
+    }
 
-        for(int x = 0; x<chunkX; x++) {
-            for (int y = 0; y < chunkY; y++) {
-                for (int z = 0; z < chunkZ; z++) {
-                    if(blocks[x][y][z]!=Block::Dirt) {
-                        continue;
-                    }
-                    blocks[x][y][z] = (y==chunkY-1 || blocks[x][y+1][z] == Block::Air)
-                            ?Block::Grass
-                            :Block::Dirt;
+    for(int x = 0; x<chunkX; x++) {
+        for (int y = 0; y < chunkY; y++) {
+            for (int z = 0; z < chunkZ; z++) {
+                if(blocks[x][y][z]!=Block::Dirt) {
+                    continue;
                 }
+                blocks[x][y][z] = (y==chunkY-1 || blocks[x][y+1][z] == Block::Air)
+                                  ?Block::Grass
+                                  :Block::Dirt;
             }
         }
     }

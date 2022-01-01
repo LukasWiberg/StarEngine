@@ -113,6 +113,9 @@ void StarEngine::DrawFrame(double frameTime) {
     vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderPipelineSingleton::GetRenderPipeline(0)->pipelineLayout, 0, 1, &this->vulkan->descriptorSets[currentFrame], 0, nullptr);
 
     for(auto meshObject : vulkan->meshObjects) {
+        if(!meshObject->visible) {
+            continue;
+        }
         vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &meshObject->vertexBuffer, offsets);
         vkCmdBindIndexBuffer(cmdBuffer, meshObject->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(cmdBuffer, meshObject->indexCount, 1, 0, 0, 0);
@@ -213,6 +216,8 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
     memcpy(data, &ubo, sizeof(ubo));
     vkUnmapMemory(vulkan->device, vulkan->uniformBuffersMemory[currentImage]);
 }
-void StarEngine::AddMesh(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices) {
-    vulkan->meshObjects.push_back(new MeshObject(vertices, indices, vulkan->device, vulkan->physicalDevice, vulkan->graphicsQueue, vulkan->mainCommandPool));
+MeshObject* StarEngine::AddMesh(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices) {
+    auto mesh = new MeshObject(vertices, indices, vulkan->device, vulkan->physicalDevice, vulkan->graphicsQueue, vulkan->mainCommandPool);
+    vulkan->meshObjects.push_back(mesh);
+    return mesh;
 }

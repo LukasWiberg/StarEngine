@@ -32,6 +32,7 @@ public:
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
     VkBuffer indexBuffer = VK_NULL_HANDLE;
     size_t indexCount;
+    bool visible = true;
 };
 
 
