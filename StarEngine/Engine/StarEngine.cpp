@@ -45,7 +45,8 @@ void StarEngine::EngineLoop() {
     ScopedClock c = ScopedClock();
     while(!glfwWindowShouldClose(vulkan->window)) {
 //        ScopedClock d = ScopedClock("FPS: ", true);
-        ScopedClock e = ScopedClock("Frametime: ", false, true);
+        std::cout << "Pos: (" << camera->cameraPos.x << ", " << camera->cameraPos.y << ", " << camera->cameraPos.z << ")" << std::endl;
+//        ScopedClock e = ScopedClock("Frametime: ", false, true);
         glfwPollEvents();
         auto frameTime = c.GetElapsedSeconds();
         {
@@ -60,9 +61,9 @@ void StarEngine::EngineLoop() {
         c.Reset();
         DrawFrame(c.GetElapsedSeconds());
         iterator++;
-        totalFrametime+=e.GetElapsedNanoSeconds()/1000000;
+//        totalFrametime+=e.GetElapsedNanoSeconds()/1000000;
     }
-    std::cout << "Average frametime: " << totalFrametime/iterator << "ms" << std::endl;
+//    std::cout << "Average frametime: " << totalFrametime/iterator << "ms" << std::endl;
     vulkan->Cleanup();
 }
 

@@ -11,7 +11,7 @@
 Mandir::Mandir(StarEngine* pEngine) {
     this->engine = pEngine;
     worldGeneratorNoiseObject = new NoiseObject(123543);
-    int chunksDiameter = 10;
+    int chunksDiameter = 20;
     {
         ScopedClock c = ScopedClock(" ", false, true);
         int chunkCount = 0;
@@ -25,6 +25,7 @@ Mandir::Mandir(StarEngine* pEngine) {
     }
 
     {
+
         ScopedClock c = ScopedClock("Adding vertex and index lists in: ", false, true);
 //        uint32_t t = 0;
         for(auto& chunk : chunks) {
