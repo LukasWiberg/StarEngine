@@ -45,8 +45,8 @@ void StarEngine::EngineLoop() {
     ScopedClock c = ScopedClock();
     while(!glfwWindowShouldClose(vulkan->window)) {
 //        ScopedClock d = ScopedClock("FPS: ", true);
-        std::cout << "Pos: (" << camera->cameraPos.x << ", " << camera->cameraPos.y << ", " << camera->cameraPos.z << ")" << std::endl;
-//        ScopedClock e = ScopedClock("Frametime: ", false, true);
+//        std::cout << "Pos: (" << camera->cameraPos.x << ", " << camera->cameraPos.y << ", " << camera->cameraPos.z << ")" << std::endl;
+        ScopedClock e = ScopedClock("Frametime: ", false, true);
         glfwPollEvents();
         auto frameTime = c.GetElapsedSeconds();
         {
@@ -217,8 +217,44 @@ void StarEngine::UpdateUniformBuffer(uint32_t currentImage) {
     memcpy(data, &ubo, sizeof(ubo));
     vkUnmapMemory(vulkan->device, vulkan->uniformBuffersMemory[currentImage]);
 }
+
 MeshObject* StarEngine::AddMesh(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices) {
     auto mesh = new MeshObject(vertices, indices, vulkan->device, vulkan->physicalDevice, vulkan->graphicsQueue, vulkan->mainCommandPool);
+    vulkan->meshObjects.push_back(mesh);
+    return mesh;
+}
+
+MeshObject* StarEngine::AddMeshList(const std::vector<std::vector<Vertex>*>& vertices, const std::vector<std::vector<uint32_t>*>& indices) {
+    auto finalVertices = new std::vector<Vertex>();
+    auto finalIndices = new std::vector<uint32_t>();
+
+    uint32_t vertexCount = 0;
+    uint32_t indexCount = 0;
+    for(auto vertexList : vertices) {
+        vertexCount += vertexList->size();
+    }
+    for(auto indexList : indices) {
+        indexCount += indexList->size();
+    }
+
+    finalVertices->resize(vertexCount);
+    finalIndices->resize(indexCount);
+
+    uint32_t vertexOffset = 0;
+    uint32_t indexOffset = 0;
+
+    for(uint32_t i = 0; i<indices.size(); i++) {
+        auto vertexList = vertices[i];
+        auto indexList = indices[i];
+        for(auto index : *indexList) {
+            (*finalIndices)[indexOffset++] = vertexOffset+index;
+        }
+        for(auto vertex : *vertexList) {
+            (*finalVertices)[vertexOffset++] = vertex;
+        }
+    }
+
+    auto mesh = new MeshObject(*finalVertices, *finalIndices, vulkan->device, vulkan->physicalDevice, vulkan->graphicsQueue, vulkan->mainCommandPool);
     vulkan->meshObjects.push_back(mesh);
     return mesh;
 }

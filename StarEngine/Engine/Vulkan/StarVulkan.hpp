@@ -54,12 +54,6 @@ private:
     VkDescriptorPool descriptorPool{};
     //endregion
 
-    //region Depth
-    VkImage depthImage{};
-    VkDeviceMemory depthImageMemory{};
-    VkImageView depthImageView{};
-    //endregion
-
     VkSurfaceKHR surface{};
 
     //Configuration
@@ -102,7 +96,7 @@ private:
     VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) const;
     void GenerateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels, VkCommandPool commandPool, VkQueue queue);
     static bool HasStencilComponent(VkFormat format);
-    void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandPool commandPool, VkQueue queue) const;
+
     VkFormat FindDepthFormat();
     VkFormat FindSupportedFormat(VkFormat *candidates, uint32_t candidateCount, VkImageTiling tiling, VkFormatFeatureFlags features);
     //endregion
@@ -167,6 +161,12 @@ public:
     std::vector<VkFence> imagesInFlight;
     //endregion
 
+    //region Depth
+    VkImage depthImage{};
+    VkDeviceMemory depthImageMemory{};
+    VkImageView depthImageView{};
+    //endregion
+
     //HELPERS
     bool CheckValidationSupport();
     static std::vector<const char*> GetRequiredExtensions();
@@ -194,6 +194,8 @@ public:
     void Initialize();
     //endregion
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+
+    void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandPool commandPool, VkQueue queue) const;
 };
 
 

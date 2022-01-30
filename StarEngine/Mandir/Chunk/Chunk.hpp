@@ -26,7 +26,7 @@ private:
     uint32_t indexIndex = 0;
     uint32_t vertexIndex = 0;
     uint32_t vertexIndexOffset = 0;
-    uint32_t visibleFaces;
+    uint32_t visibleFaces = 0;
     std::vector<MeshData> meshData;
 
 
@@ -40,6 +40,8 @@ public:
 
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+    std::vector<Vertex> marchingVertices;
+    std::vector<uint32_t> marchingIndices;
 };
 
 

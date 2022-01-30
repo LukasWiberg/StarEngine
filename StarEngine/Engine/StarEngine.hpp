@@ -54,6 +54,7 @@ public:
     void StartEngine();
 
     MeshObject* AddMesh(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
+    MeshObject* AddMeshList(const std::vector<std::vector<Vertex>*>& vertices, const std::vector<std::vector<uint32_t>*>& indices);
 
     Camera *camera;
     bool framebufferResized = false;
