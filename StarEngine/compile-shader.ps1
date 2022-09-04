@@ -1,12 +1,12 @@
 $Path=$args[0]
-echo "Compiling shaders..."
+Write-Output "Compiling shaders..."
 Get-ChildItem "Shaders" | ForEach-Object {
-    echo "Compiling shader: "$_.FullName
+    Write-Output "Compiling shader: "$_.FullName
     $newFile = $_.BaseName+"-"+$_.Extension.Replace('.','')+".spv"
-    C:/VulkanSDK/1.2.176.1/Bin/glslc.exe $_.FullName -o $pwd/Resources/Shaders/$newFile
+    C:/VulkanSDK/1.3.224.1/Bin/glslc.exe $_.FullName -o $pwd/Resources/Shaders/$newFile
 }
-echo "Compiled shaders successfully"
-echo "Moving shaders to $Path"
-robocopy "$pwd/Resources"  *.* "$Path" /S
-echo "Moving shaders to %path% successfully"
+Write-Output "Compiled shaders successfully"
+Write-Output "Moving shaders to $Path"
+robocopy "$pwd/Resources"  *.* "$pwd../cmake-build-debug/StartEngine/resources" /S
+Write-Output "Moving shaders to %path% successfully"
 exit 0

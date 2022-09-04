@@ -5,6 +5,7 @@
 #include "MeshObject.hpp"
 
 #include <utility>
+#include <cstring>
 #include "../Vulkan/Helpers/VulkanHelper.hpp"
 
 MeshObject::MeshObject(std::vector<Vertex> vertices, std::vector<uint32_t> indices, VkDevice device, VkPhysicalDevice physicalDevice, VkQueue queue, VkCommandPool commandPool) {
