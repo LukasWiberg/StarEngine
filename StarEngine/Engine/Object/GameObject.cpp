@@ -35,4 +35,3 @@ void GameObject::LogicUpdate(double frameTime) {
 
 void GameObject::GraphicsUpdate(double frameTime) {
 }
-

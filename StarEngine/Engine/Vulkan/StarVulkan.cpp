@@ -19,6 +19,7 @@
 #include "../General/ScopedClock.hpp"
 #include "Helpers/VulkanHelper.hpp"
 #include "Helpers/VulkanCommandHelper.hpp"
+#include "../Shaders/Material.hpp"
 
 StarVulkan::StarVulkan() {
 }
@@ -722,38 +723,7 @@ VkFormat StarVulkan::FindSupportedFormat(VkFormat *candidates, uint32_t candidat
 
 //region DescriptorSets
 void StarVulkan::CreateDescriptorSetLayout() {
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    VkDescriptorSetLayoutBinding resLayoutBinding{};
-    resLayoutBinding.binding = 2;
-    resLayoutBinding.descriptorCount = 1;
-    resLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    resLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    resLayoutBinding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayoutBinding bindings[3] = {uboLayoutBinding, samplerLayoutBinding, resLayoutBinding};
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 3;
-    layoutInfo.pBindings = bindings;
-
-
-    if(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor set layout!");
-    }
+    new Material("Resources/Materials/mat1.json", device);
 }
 
 void StarVulkan::CreateDescriptorPool() {
