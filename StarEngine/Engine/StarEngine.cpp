@@ -9,6 +9,7 @@
 #include "Constants.hpp"
 #include "General/ScopedClock.hpp"
 #include "Vulkan/RenderPipelineSingleton.hpp"
+#include "../SpaceGame/SpaceGame.hpp"
 
 
 StarEngine *StarEngine::GetInstance() {
@@ -34,7 +35,8 @@ StarEngine::StarEngine() {
     glfwSetKeyCallback(vulkan->window, Keyboard::KeyInput);
     glfwSetCursorPosCallback(vulkan->window, Mouse::MouseInput);
 
-    this->gameCore = new Mandir(this);
+    //this->gameCore = new Mandir(this);
+    this->gameCore = new SpaceGame(this);
 }
 
 void StarEngine::StartEngine() {
@@ -65,15 +67,15 @@ void StarEngine::EngineLoop() {
 }
 
 void StarEngine::LogicUpdate(double frameTime) {
-    for(int i = 0; i<gameObjects.size(); i++) {
-        gameObjects[i]->LogicUpdate(frameTime);
+    for(auto & gameObject : gameObjects) {
+        gameObject->LogicUpdate(frameTime);
     }
 }
 
 void StarEngine::GraphicsUpdate(double frameTime) {
-    for(int i = 0; i<gameObjects.size(); i++) {
-        gameObjects[i]->GraphicsUpdate(frameTime);
-        gameObjects[i]->UpdateTransform();
+    for(auto & gameObject : gameObjects) {
+        gameObject->GraphicsUpdate(frameTime);
+        gameObject->UpdateTransform();
     }
 }
 
@@ -100,7 +102,7 @@ void StarEngine::DrawFrame(double frameTime) {
     }
     vulkan->imagesInFlight[imageIndex] = vulkan->inFlightFences[currentFrame];
     vkResetCommandBuffer(cmdBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-    vulkan->BeginCommandBuffer(cmdBuffer);
+    StarVulkan::BeginCommandBuffer(cmdBuffer);
 
     StartRenderPass(cmdBuffer, imageIndex);
 
@@ -158,7 +160,7 @@ void StarEngine::EndRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmdBuffer;
 
-    vulkan->EndCommandBuffer(cmdBuffer, this->vulkan->graphicsQueue);
+    StarVulkan::EndCommandBuffer(cmdBuffer, this->vulkan->graphicsQueue);
 //    this->vulkan->EndSingleTimeCommand(cmdBuffer, this->vulkan->mainCommandPool, this->vulkan->graphicsQueue);
 //    vkEndCommandBuffer(cmdBuffer);
 

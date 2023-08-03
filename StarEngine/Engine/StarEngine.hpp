@@ -27,7 +27,7 @@ private:
     static StarEngine *instance;
     StarEngine();
 
-    Mandir* gameCore;
+    SpaceGame* gameCore;
 
     StarVulkan *vulkan;
     Keyboard *keyboard;

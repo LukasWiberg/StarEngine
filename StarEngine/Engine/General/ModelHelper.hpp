@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <string>
 #include "../Types/Vertex.hpp"
 
 #ifndef STARENGINE_MODELHELPER_HPP
