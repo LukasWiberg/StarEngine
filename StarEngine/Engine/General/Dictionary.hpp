@@ -7,7 +7,6 @@
 
 #include <vector>
 #include <iostream>
-#include <glm/fwd.hpp>
 
 template<typename Key, typename Val>
 class Dictionary {
@@ -58,11 +57,11 @@ public:
         values.clear();
     };
 
-    Val GetAtIndex(glm::uint32_t index) {
+    Val GetAtIndex(uint32_t index) {
         return values[index];
     }
 
-    glm::uint32_t Size() { return keys.size(); }
+    uint32_t Size() { return keys.size(); }
 
     std::vector<Val> GetAll() { return values; }
 

@@ -5,7 +5,6 @@
 #ifndef STARENGINE_STARENGINE_HPP
 #define STARENGINE_STARENGINE_HPP
 
-class SpaceGame;
 class StarEngine;
 #define GLFW_INCLUDE_VULKAN
 #include <chrono>
@@ -28,7 +27,7 @@ private:
     static StarEngine *instance;
     StarEngine();
 
-    Mandir* gameCore;
+    SpaceGame* gameCore;
 
     StarVulkan *vulkan;
     Keyboard *keyboard;
