@@ -36,7 +36,7 @@ StarEngine::StarEngine() {
     glfwSetCursorPosCallback(vulkan->window, Mouse::MouseInput);
 
     //this->gameCore = new Mandir(this);
-    this->gameCore = new SpaceGame(this);
+    this->gameCore = new Mandir(this);
 }
 
 void StarEngine::StartEngine() {

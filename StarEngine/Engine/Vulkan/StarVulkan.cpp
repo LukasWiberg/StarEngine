@@ -52,7 +52,7 @@ void StarVulkan::InitGLFW() {
     int monitorsCount;
     auto monitors = glfwGetMonitors(&monitorsCount);
     //Currently use 2 since it's the one I'm testing on.
-    auto monitor = monitors[1];
+    auto monitor = monitors[2];
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     glfwWindowHint(GLFW_RED_BITS, mode->redBits);
     glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
